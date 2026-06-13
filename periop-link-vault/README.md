@@ -18,7 +18,8 @@ Su Netlify: pubblica la cartella così com'è (il file `_redirects` gestisce l'S
 - **Importa da DOI** via Crossref (titolo, autori, rivista, anno).
 - **PDF → DOI**: legge il PDF nel browser (PDF.js) ed estrae i DOI; drag & drop supportato; "Crea scheda" recupera in automatico i metadati.
 - **Backup**: esporta/importa JSON (con **unisci o sostituisci** + deduplica), oppure esporta **BibTeX / RIS** per Zotero, Mendeley, EndNote.
-- **PWA installabile** e funzionante offline (service worker + manifest).
+- **PWA installabile** e funzionante offline (service worker + manifest, icone PNG 192/512 + maskable).
+- **Link diretti**: DOI → doi.org, PMID → PubMed; **tag cliccabili** per filtrare al volo.
 
 ## Novità rispetto alla V9
 
@@ -42,4 +43,4 @@ periop-link-vault/
 └── assets/           # PDF.js (pdf.min.js, pdf.worker.min.js)
 ```
 
-> Nota icone: l'icona è in SVG. Per la massima compatibilità di installazione su iOS conviene aggiungere anche `icon-192.png` e `icon-512.png` e referenziarle nel `manifest.json`.
+Le icone PNG (`icon-192.png`, `icon-512.png`) sono generate proceduralmente; per rigenerarle: `node tools/genicon.js` (vedi cronologia commit).

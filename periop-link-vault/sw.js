@@ -1,10 +1,12 @@
 /* Periop Link Vault - service worker (offline app shell) */
-const CACHE = 'plv-v10';
+const CACHE = 'plv-v11';
 const SHELL = [
   './',
   './index.html',
   './manifest.json',
   './icon.svg',
+  './icon-192.png',
+  './icon-512.png',
   './assets/pdf.min.js',
   './assets/pdf.worker.min.js'
 ];
