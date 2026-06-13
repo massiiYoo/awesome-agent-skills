@@ -1,5 +1,5 @@
 /* Periop Link Vault - service worker (offline app shell) */
-const CACHE = 'plv-v11';
+const CACHE = 'plv-v12';
 const SHELL = [
   './',
   './index.html',

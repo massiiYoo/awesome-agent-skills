@@ -12,14 +12,20 @@ npx serve periop-link-vault   # oppure: python3 -m http.server
 
 Su Netlify: pubblica la cartella così com'è (il file `_redirects` gestisce l'SPA).
 
+## Interfaccia
+
+Design **Material You / mobile-native**: app bar con titolo grande, navigation bar in basso, segmented control per i filtri, **bottom sheet** per dettaglio e form, dark mode completa.
+
 ## Funzioni
 
-- **Archivio** raggruppato per categoria, con ordinamento (recenti / anno / titolo / priorità) e filtro per stato.
-- **Importa da DOI** via Crossref (titolo, autori, rivista, anno).
-- **PDF → DOI**: legge il PDF nel browser (PDF.js) ed estrae i DOI; drag & drop supportato; "Crea scheda" recupera in automatico i metadati.
-- **Backup**: esporta/importa JSON (con **unisci o sostituisci** + deduplica), oppure esporta **BibTeX / RIS** per Zotero, Mendeley, EndNote.
-- **PWA installabile** e funzionante offline (service worker + manifest, icone PNG 192/512 + maskable).
-- **Link diretti**: DOI → doi.org, PMID → PubMed; **tag cliccabili** per filtrare al volo.
+- **Home dashboard**: metriche, progresso di lettura, ripartizione per categoria, ultimi aggiunti e scorciatoie.
+- **Libreria** raggruppata per categoria, con ricerca, ordinamento (recenti / anno / titolo / priorità) e filtro di stato.
+- **Vista dettaglio** a tutta pagina: metadati, abstract espandibile, note, tag e azioni.
+- **Azioni rapide**: cambio stato con un tap sulla card, **selezione multipla** (long-press) con azioni in blocco (stato, categoria, esporta, elimina).
+- **Import metadati** da **DOI (Crossref)** e da **PMID (PubMed)**, con autori e abstract; pulsante "aggiorna metadati" sulle schede esistenti.
+- **PDF → DOI**: legge il PDF nel browser (PDF.js), drag & drop, "Crea scheda" con auto-fetch.
+- **Backup**: JSON (con **unisci o sostituisci** + deduplica) ed export **BibTeX / RIS** per Zotero, Mendeley, EndNote.
+- **PWA installabile** e offline (service worker + manifest, icone PNG 192/512 + maskable).
 
 ## Novità rispetto alla V9
 
