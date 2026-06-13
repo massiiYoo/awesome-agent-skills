@@ -1,0 +1,21 @@
+{
+  "name": "Periop Link Vault",
+  "short_name": "Link Vault",
+  "description": "Libreria clinica offline: salva DOI, categorizza articoli scientifici ed esegui backup.",
+  "lang": "it",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f1ec",
+  "theme_color": "#0f766e",
+  "categories": ["medical", "education", "productivity"],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
