@@ -6,7 +6,7 @@ function chunk(type,data){const t=Buffer.from(type,'ascii');const len=Buffer.all
 function png(w,h,rgba){const sig=Buffer.from([137,80,78,71,13,10,26,10]);const ih=Buffer.alloc(13);ih.writeUInt32BE(w,0);ih.writeUInt32BE(h,4);ih[8]=8;ih[9]=6;const raw=Buffer.alloc(h*(w*4+1));for(let y=0;y<h;y++){raw[y*(w*4+1)]=0;rgba.copy(raw,y*(w*4+1)+1,y*w*4,(y+1)*w*4);}const idat=zlib.deflateSync(raw,{level:9});return Buffer.concat([sig,chunk('IHDR',ih),chunk('IDAT',idat),chunk('IEND',Buffer.alloc(0))]);}
 // color helpers
 function hex(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
-const A=hex('#0f766e'),B=hex('#7ccfc5'),WHITE=[255,255,255];
+const A=hex('#4f46e5'),B=hex('#9333ea'),WHITE=[255,255,255];
 function lerp(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
 // rounded-rect signed coverage at point (px,py) in unit space [0,1]
 function inRR(px,py,x0,y0,x1,y1,r){const cx=Math.min(Math.max(px,x0+r),x1-r),cy=Math.min(Math.max(py,y0+r),y1-r);if(px<x0||px>x1||py<y0||py>y1)return false;const dx=px-cx,dy=py-cy;return dx*dx+dy*dy<=r*r;}
