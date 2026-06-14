@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Periop Link Vault</title>
   <meta name="description" content="Libreria clinica offline: salva DOI, categorizza articoli scientifici ed esegui backup." />
-  <meta name="theme-color" content="#4f46e5" />
+  <meta name="theme-color" content="#fbf3dc" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
@@ -16,13 +16,13 @@
   <style>
     /* ---------- Material 3 (teal) tokens ---------- */
     :root,[data-theme="light"]{
-      --primary:#4f46e5;--on-primary:#ffffff;--primary-container:#e4e1ff;--on-primary-container:#16135a;
-      --secondary-container:#ebeafa;--on-secondary-container:#1b1b3a;
-      --bg:#f7f7fc;--surface:#f7f7fc;--s-lowest:#ffffff;--s-low:#f1f0f9;--s-1:#ebeaf5;--s-2:#e4e3f1;--s-3:#dcdbeb;
-      --on-surface:#15141c;--on-variant:#494856;--outline:#79788c;--outline-v:#cbcad9;
-      --error:#ba1a1a;--error-c:#ffdad6;--on-error-c:#410002;--success:#1f8a4c;--warning:#b4690e;--danger:#c01f7a;
+      --primary:#4f46e5;--on-primary:#ffffff;--primary-container:#e6e1ff;--on-primary-container:#16135a;
+      --secondary-container:#e8e3fb;--on-secondary-container:#1f1b3a;
+      --bg:#fbf3dc;--surface:#fbf3dc;--s-lowest:#fffef8;--s-low:#fdf8ea;--s-1:#f4ecd1;--s-2:#ece1bd;--s-3:#e3d6a8;
+      --on-surface:#211d12;--on-variant:#5a5238;--outline:#8c8260;--outline-v:#ddd0a6;
+      --error:#ba1a1a;--error-c:#ffdad6;--on-error-c:#410002;--success:#1f8a4c;--warning:#9a6a0e;--danger:#c01f7a;
       --grad:linear-gradient(135deg,#4f46e5,#9333ea);--grad-soft:linear-gradient(135deg,#6366f1,#a855f7);
-      --shadow:0 12px 36px rgba(45,33,98,.16);--shadow-1:0 2px 10px rgba(45,33,98,.10);
+      --shadow:0 12px 36px rgba(90,70,25,.15);--shadow-1:0 2px 10px rgba(90,70,25,.10);
       --font:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     }
     [data-theme="dark"]{
@@ -348,7 +348,7 @@ function renderFlags(f={}){$('flags').innerHTML=['guideline','practice','fulltex
 function collectFlags(){const g=k=>{const el=document.querySelector('[data-flag="'+k+'"]');return!!(el&&el.classList.contains('on'))};return{guideline:g('guideline'),practice:g('practice'),fulltext:g('fulltext')}}
 
 /* theme & nav */
-function theme(){document.documentElement.setAttribute('data-theme',app.theme);$('themeBtn').textContent=app.theme==='dark'?'☀️':'🌙';document.querySelector('meta[name=theme-color]').setAttribute('content',app.theme==='dark'?'#0a0a12':'#4f46e5')}
+function theme(){document.documentElement.setAttribute('data-theme',app.theme);$('themeBtn').textContent=app.theme==='dark'?'☀️':'🌙';document.querySelector('meta[name=theme-color]').setAttribute('content',app.theme==='dark'?'#0a0a12':'#fbf3dc')}
 let titleObserver=null;
 function observeTitle(id){if(titleObserver)titleObserver.disconnect();const lt=document.querySelector('#'+id+' .large-title, #'+id+' .brand-hero');if(!lt||!('IntersectionObserver'in window)){$('appbar').classList.toggle('elevated',false);return}titleObserver=new IntersectionObserver(es=>{$('appbar').classList.toggle('elevated',!es[0].isIntersecting)},{rootMargin:'-56px 0px 0px 0px',threshold:0});titleObserver.observe(lt)}
 function screen(id){document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.navbar button').forEach(x=>x.classList.toggle('on',x.dataset.go===id));$('barTitle').textContent=screenTitles[id]||'';$('fab').style.display=(id==='home'||id==='library')?'inline-flex':'none';window.scrollTo(0,0);observeTitle(id);if(id==='home')renderHome();if(id==='library')renderLibrary();if(id==='pdf')renderDois()}
