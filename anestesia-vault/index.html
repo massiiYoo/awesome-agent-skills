@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Anestesia Vault</title>
   <meta name="description" content="Catalogo offline di protocolli e linee guida di anestesia: classifica i documenti dei vari ospedali e ritrovali al volo." />
-  <meta name="theme-color" content="#f4faf9" />
+  <meta name="theme-color" content="#fff3f1" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
@@ -15,22 +15,22 @@
   <style>
     /* ---------- Material 3 (teal) tokens ---------- */
     :root,[data-theme="light"]{
-      --primary:#0d9488;--on-primary:#ffffff;--primary-container:#b8eee6;--on-primary-container:#00201b;
-      --secondary-container:#d7e8e4;--on-secondary-container:#101f1c;
-      --bg:#f4faf9;--surface:#f4faf9;--s-lowest:#ffffff;--s-low:#eef6f4;--s-1:#e6f1ef;--s-2:#d8e9e6;--s-3:#c8e0db;
-      --on-surface:#171d1c;--on-variant:#3f4946;--outline:#6f7976;--outline-v:#c5d2cf;
-      --error:#ba1a1a;--error-c:#ffdad6;--on-error-c:#410002;--success:#1f8a4c;--warning:#9a6a0e;--danger:#c01f7a;
-      --grad:linear-gradient(135deg,#0d9488,#0891b2);
-      --shadow:0 12px 36px rgba(15,70,62,.16);--shadow-1:0 2px 10px rgba(15,70,62,.10);
+      --primary:#c62828;--on-primary:#ffffff;--primary-container:#ffdad5;--on-primary-container:#410002;
+      --secondary-container:#f6d9d5;--on-secondary-container:#2c1512;
+      --bg:#fff3f1;--surface:#fff3f1;--s-lowest:#ffffff;--s-low:#fde9e6;--s-1:#fbe1dd;--s-2:#f8d6d1;--s-3:#f3c7c1;
+      --on-surface:#231918;--on-variant:#5d3f3c;--outline:#8c6f6b;--outline-v:#eccbc6;
+      --error:#ba1a1a;--error-c:#ffdad6;--on-error-c:#410002;--success:#1f8a4c;--warning:#9a6a0e;--danger:#b3261e;
+      --grad:linear-gradient(135deg,#c62828,#e53935);
+      --shadow:0 12px 36px rgba(120,30,25,.16);--shadow-1:0 2px 10px rgba(120,30,25,.10);
       --font:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     }
     [data-theme="dark"]{
-      --primary:#5fd9c9;--on-primary:#00382f;--primary-container:#005046;--on-primary-container:#7af5e4;
-      --secondary-container:#26322f;--on-secondary-container:#d7e8e4;
-      --bg:#0b1413;--surface:#0b1413;--s-lowest:#060d0c;--s-low:#121d1b;--s-1:#182422;--s-2:#1f2d2a;--s-3:#293935;
-      --on-surface:#dde4e1;--on-variant:#bec9c5;--outline:#889390;--outline-v:#3a4543;
-      --error:#ffb4ab;--error-c:#93000a;--on-error-c:#ffdad6;--success:#7bd28b;--warning:#e0a458;--danger:#f078b6;
-      --grad:linear-gradient(135deg,#2dd4bf,#22d3ee);
+      --primary:#ffb4ab;--on-primary:#690005;--primary-container:#93000a;--on-primary-container:#ffdad6;
+      --secondary-container:#3a2723;--on-secondary-container:#f6d9d5;
+      --bg:#1a1110;--surface:#1a1110;--s-lowest:#120b0a;--s-low:#241918;--s-1:#2c201e;--s-2:#372a27;--s-3:#453533;
+      --on-surface:#f1dedc;--on-variant:#d8c2be;--outline:#a08c89;--outline-v:#453230;
+      --error:#ffb4ab;--error-c:#93000a;--on-error-c:#ffdad6;--success:#7bd28b;--warning:#e0a458;--danger:#ffb4ab;
+      --grad:linear-gradient(135deg,#ff5449,#ff8a80);
       --shadow:0 12px 36px rgba(0,0,0,.55);--shadow-1:0 2px 10px rgba(0,0,0,.45);
     }
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;min-width:0}
@@ -245,8 +245,8 @@
       <div class="field"><label for="f_date">Data del documento</label><input id="f_date" type="date" /></div>
       <div class="field"><label for="f_tags">Tag (separati da virgola)</label><input id="f_tags" placeholder="ecoguidato, arto superiore, ropivacaina" /></div>
       <div class="field"><label for="f_notes">Note</label><textarea id="f_notes" placeholder="Indicazioni, dosaggi, differenze rispetto al nostro protocollo…"></textarea></div>
-      <div class="field"><label>File allegato</label>
-        <div class="drop" id="drop"><strong>Tocca per scegliere</strong> o trascina qui<div class="hint" style="margin-top:6px">PDF, foto, Word… restano salvati nel dispositivo</div><input id="f_file" type="file" style="margin-top:14px" /></div>
+      <div class="field"><label>File allegati</label>
+        <div class="drop" id="drop"><strong>Tocca per scegliere</strong> o trascina qui<div class="hint" style="margin-top:6px">Puoi caricarne <b>più di uno</b> · PDF, foto, Word… restano salvati nel dispositivo</div><input id="f_file" type="file" multiple style="margin-top:14px" /></div>
         <div id="fileChip"></div>
       </div>
       <button class="btn filled full" type="button" id="saveBtn2" style="margin-top:4px">Salva documento</button>
@@ -262,7 +262,8 @@
 const DEFAULT_CATEGORIES = ["Locoregionale","Anestesia generale","Vie aeree","Terapia del dolore","Sedazione","Ostetricia","Pediatria","Terapia intensiva","Valutazione preoperatoria","Emergenze / ALS","Coagulazione & emotrasfusione","ERAS","Farmaci & dosaggi","Checklist & SOP","Altro"];
 const DB_NAME="AnestesiaVaultDB", STORE="documents", DB_VER=1;
 let docs=[], collapsed=JSON.parse(localStorage.getItem('av-collapsed')||'{}');
-const state={screen:"home", cat:"__all__", q:"", sort:"recent", editFile:null, keepFile:true};
+const state={screen:"home", cat:"__all__", q:"", sort:"recent", formFiles:[]};
+function docFiles(d){if(Array.isArray(d.files))return d.files;if(d.file)return [{blob:d.file,name:d.fileName,type:d.fileType,size:d.fileSize}];return [];}
 
 /* ---------- IndexedDB ---------- */
 function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VER);r.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:"id"});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
@@ -298,7 +299,7 @@ function renderDashboard(){
   const counts=catCounts();
   const hosps=new Set(docs.map(d=>d.hospital).filter(Boolean));
   const cats=Object.keys(counts).length;
-  const withFile=docs.filter(d=>d.fileName).length;
+  const withFile=docs.filter(d=>docFiles(d).length).length;
   const recent=[...docs].sort((a,b)=>(b.addedAt||0)-(a.addedAt||0)).slice(0,4);
   const topCats=allCategories().map(c=>({c,n:counts[c]||0})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n).slice(0,6);
   const max=Math.max(1,...topCats.map(x=>x.n));
@@ -333,7 +334,7 @@ function filtered(){
   let list=docs.slice();
   if(state.cat!=="__all__")list=list.filter(d=>d.category===state.cat);
   const q=state.q.trim().toLowerCase();
-  if(q){const ws=q.split(/\s+/);list=list.filter(d=>{const hay=[d.title,d.category,d.hospital,d.author,d.notes,(d.tags||[]).join(" "),d.fileName].join(" ").toLowerCase();return ws.every(w=>hay.includes(w));});}
+  if(q){const ws=q.split(/\s+/);list=list.filter(d=>{const hay=[d.title,d.category,d.hospital,d.author,d.notes,(d.tags||[]).join(" "),docFiles(d).map(f=>f.name).join(" ")].join(" ").toLowerCase();return ws.every(w=>hay.includes(w));});}
   const s=state.sort;
   list.sort((a,b)=>s==="title"?(a.title||"").localeCompare(b.title||"","it"):s==="date_desc"?((b.date||"")<(a.date||"")?-1:1):s==="date_asc"?((a.date||"")<(b.date||"")?-1:1):(b.addedAt||0)-(a.addedAt||0));
   return list;
@@ -341,12 +342,13 @@ function filtered(){
 function cardHTML(d){
   const sub=[d.hospital,fmtDate(d.date)].filter(Boolean).join(" · ");
   const tags=(d.tags||[]).slice(0,3).map(t=>`<span class="chip">${esc(t)}</span>`).join("");
+  const files=docFiles(d);
   return `<div class="item" data-id="${d.id}">
-    <div class="ic">${d.fileName?fileIcon(d.fileType):"📄"}</div>
+    <div class="ic">${files.length?fileIcon(files[0].type):"📄"}</div>
     <div class="body">
       <h3>${esc(d.title)}</h3>
       ${sub?`<div class="sub2">${esc(sub)}</div>`:""}
-      <div class="chips"><span class="chip cat">${esc(d.category)}</span>${tags}${d.fileName?'<span class="chip">📎 file</span>':''}</div>
+      <div class="chips"><span class="chip cat">${esc(d.category)}</span>${tags}${files.length?`<span class="chip">📎 ${files.length} file</span>`:''}</div>
     </div>
   </div>`;
 }
@@ -394,38 +396,42 @@ function openDetail(id){
   const tags=(d.tags||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join("");
   let html=`<div class="d-title">${esc(d.title)}</div>
     <div class="d-chips"><span class="chip cat">${esc(d.category)}</span>${tags}</div>`;
-  if(d.fileName)html+=`<div class="filechip"><span>${fileIcon(d.fileType)}</span><span class="fn">${esc(d.fileName)}</span><span class="hint" style="padding:0">${fmtSize(d.fileSize)}</span></div>
-    <div class="d-actions" style="margin:12px 0 4px">${d.file?`<button class="btn filled" onclick="openFile('${id}')">Apri</button><button class="btn tonal" onclick="downloadFile('${id}')">⬇️ Scarica</button>`:'<div class="hint">File non disponibile</div>'}</div>`;
+  const files=docFiles(d);
+  if(files.length){
+    html+=`<div class="d-sec"><div class="lab">File allegati (${files.length})</div>`;
+    files.forEach((f,i)=>{html+=`<div class="filechip"><span>${fileIcon(f.type)}</span><span class="fn">${esc(f.name)}</span><span class="hint" style="padding:0">${fmtSize(f.size)}</span></div>
+      <div class="d-actions" style="margin:8px 0 6px">${f.blob?`<button class="btn filled" onclick="openFile('${id}',${i})">Apri</button><button class="btn tonal" onclick="downloadFile('${id}',${i})">⬇️ Scarica</button>`:'<div class="hint">File non disponibile</div>'}</div>`;});
+    html+=`</div>`;
+  }
   html+=`<div class="d-meta">${rows.map(r=>`<div class="r"><span class="lab">${esc(r[0])}</span><span>${esc(r[1])}</span></div>`).join("")}</div>`;
   if(d.notes)html+=`<div class="d-sec"><div class="lab">Note</div><div class="d-notes">${esc(d.notes)}</div></div>`;
   html+=`<button class="btn danger-btn full" onclick="removeDoc('${id}')" style="margin-top:8px">🗑️ Elimina documento</button>`;
   $('#detailBody').innerHTML=html;
   openSheet('detailSheet');
 }
-function openFile(id){const d=docs.find(x=>x.id===id);if(!d||!d.file)return;const url=URL.createObjectURL(d.file);window.open(url,"_blank");setTimeout(()=>URL.revokeObjectURL(url),60000);}
-function downloadFile(id){const d=docs.find(x=>x.id===id);if(!d||!d.file)return;const url=URL.createObjectURL(d.file);const a=document.createElement('a');a.href=url;a.download=d.fileName||(d.title+".bin");a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
+function openFile(id,i=0){const d=docs.find(x=>x.id===id);if(!d)return;const f=docFiles(d)[i];if(!f||!f.blob)return;const url=URL.createObjectURL(f.blob);window.open(url,"_blank");setTimeout(()=>URL.revokeObjectURL(url),60000);}
+function downloadFile(id,i=0){const d=docs.find(x=>x.id===id);if(!d)return;const f=docFiles(d)[i];if(!f||!f.blob)return;const url=URL.createObjectURL(f.blob);const a=document.createElement('a');a.href=url;a.download=f.name||(d.title+".bin");a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
 async function removeDoc(id){const d=docs.find(x=>x.id===id);if(!d)return;if(!await confirmDlg("Eliminare?",`"${d.title}" verrà rimosso definitivamente.`,"Elimina",true))return;await dbDel(id);docs=await dbAll();closeSheet('detailSheet');refresh();toast("Documento eliminato");}
 
 /* ---------- form ---------- */
 function fillCategorySelect(sel){const counts=catCounts();const cats=allCategories().sort((a,b)=>a.localeCompare(b,'it'));sel.innerHTML=cats.map(c=>`<option>${esc(c)}</option>`).join("");}
-function renderFileChip(info){const w=$('#fileChip');if(!info){w.innerHTML="";return;}w.innerHTML=`<div class="filechip"><span>${fileIcon(info.type||"")}</span><span class="fn">${esc(info.name)}</span><span class="hint" style="padding:0">${info.size?fmtSize(info.size):""}</span><button type="button" class="rm" id="rmFile">×</button></div>`;$('#rmFile').onclick=()=>{state.editFile=null;state.keepFile=false;renderFileChip(null);};}
+function renderFileChips(){const w=$('#fileChip');if(!state.formFiles.length){w.innerHTML="";return;}w.innerHTML=state.formFiles.map((f,i)=>`<div class="filechip"><span>${fileIcon(f.type||"")}</span><span class="fn">${esc(f.name)}</span><span class="hint" style="padding:0">${f.size?fmtSize(f.size):""}</span><button type="button" class="rm" data-i="${i}">×</button></div>`).join("");w.querySelectorAll('.rm').forEach(b=>b.onclick=()=>{state.formFiles.splice(+b.dataset.i,1);renderFileChips();});}
 function openForm(id){
-  state.editFile=null;state.keepFile=true;
+  state.formFiles=[];
   fillCategorySelect($('#f_category'));
   $('#hospList').innerHTML=[...new Set(docs.map(d=>d.hospital).filter(Boolean))].map(h=>`<option value="${esc(h)}">`).join("");
-  if(id){const d=docs.find(x=>x.id===id);$('#formTitle').textContent="Modifica documento";$('#f_id').value=d.id;$('#f_title').value=d.title||"";$('#f_category').value=d.category||"Altro";$('#f_hospital').value=d.hospital||"";$('#f_author').value=d.author||"";$('#f_date').value=d.date||"";$('#f_tags').value=(d.tags||[]).join(", ");$('#f_notes').value=d.notes||"";renderFileChip(d.fileName?{name:d.fileName,size:d.fileSize,type:d.fileType}:null);}
-  else{$('#formTitle').textContent="Nuovo documento";["f_id","f_title","f_hospital","f_author","f_date","f_tags","f_notes"].forEach(k=>$('#'+k).value="");if(state.cat!=="__all__")$('#f_category').value=state.cat;renderFileChip(null);}
+  if(id){const d=docs.find(x=>x.id===id);$('#formTitle').textContent="Modifica documento";$('#f_id').value=d.id;$('#f_title').value=d.title||"";$('#f_category').value=d.category||"Altro";$('#f_hospital').value=d.hospital||"";$('#f_author').value=d.author||"";$('#f_date').value=d.date||"";$('#f_tags').value=(d.tags||[]).join(", ");$('#f_notes').value=d.notes||"";state.formFiles=docFiles(d).map(f=>({name:f.name,type:f.type,size:f.size,blob:f.blob}));}
+  else{$('#formTitle').textContent="Nuovo documento";["f_id","f_title","f_hospital","f_author","f_date","f_tags","f_notes"].forEach(k=>$('#'+k).value="");if(state.cat!=="__all__")$('#f_category').value=state.cat;}
+  renderFileChips();
   openSheet('formSheet');setTimeout(()=>$('#f_title').focus(),300);
 }
 async function saveForm(){
   const title=$('#f_title').value.trim();if(!title){toast("Il titolo è obbligatorio","warn");$('#f_title').focus();return;}
   const id=$('#f_id').value||uid();const existing=docs.find(x=>x.id===id);
-  const doc={id,title,category:$('#f_category').value||"Altro",hospital:$('#f_hospital').value.trim(),author:$('#f_author').value.trim(),date:$('#f_date').value,tags:$('#f_tags').value.split(",").map(t=>t.trim()).filter(Boolean),notes:$('#f_notes').value.trim(),addedAt:existing?existing.addedAt:Date.now(),updatedAt:Date.now(),file:null,fileName:"",fileType:"",fileSize:0};
-  if(state.editFile){doc.file=state.editFile;doc.fileName=state.editFile.name;doc.fileType=state.editFile.type;doc.fileSize=state.editFile.size;}
-  else if(existing&&state.keepFile&&existing.file){doc.file=existing.file;doc.fileName=existing.fileName;doc.fileType=existing.fileType;doc.fileSize=existing.fileSize;}
+  const doc={id,title,category:$('#f_category').value||"Altro",hospital:$('#f_hospital').value.trim(),author:$('#f_author').value.trim(),date:$('#f_date').value,tags:$('#f_tags').value.split(",").map(t=>t.trim()).filter(Boolean),notes:$('#f_notes').value.trim(),addedAt:existing?existing.addedAt:Date.now(),updatedAt:Date.now(),files:state.formFiles.map(f=>({name:f.name,type:f.type,size:f.size,blob:f.blob}))};
   await dbPut(doc);docs=await dbAll();closeSheet('formSheet');refresh();toast(existing?"Aggiornato ✓":"Salvato ✓","ok");
 }
-function pickFile(file){if(!file)return;if(file.size>40*1024*1024){toast("File troppo grande (max 40 MB)","err");return;}state.editFile=file;state.keepFile=true;renderFileChip({name:file.name,size:file.size,type:file.type});}
+function pickFiles(fileList){const files=[...(fileList||[])];if(!files.length)return;let added=0;for(const file of files){if(file.size>40*1024*1024){toast(`"${file.name}" supera i 40 MB, saltato`,"err");continue;}state.formFiles.push({name:file.name,type:file.type,size:file.size,blob:file});added++;}if(added)renderFileChips();}
 
 /* ---------- sheets ---------- */
 function openSheet(id){const s=document.getElementById(id);$('#scrim').classList.add('show');document.body.classList.add('locked');s.classList.add('open');s.setAttribute('aria-hidden','false');}
@@ -433,20 +439,25 @@ function closeSheet(id){const s=document.getElementById(id);s.classList.remove('
 function closeAllSheets(){$$('.sheet.open').forEach(s=>closeSheet(s.id));}
 
 /* ---------- backup ---------- */
-async function buildBackup(){const out={app:"Anestesia Vault",version:1,exportedAt:new Date().toISOString(),documents:[]};for(const d of docs){const it={...d};delete it.file;if(d.file)it.fileData=await blobToDataURL(d.file);out.documents.push(it);}return out;}
+async function buildBackup(){const out={app:"Anestesia Vault",version:2,exportedAt:new Date().toISOString(),documents:[]};for(const d of docs){const it={...d};delete it.file;delete it.fileName;delete it.fileType;delete it.fileSize;const files=docFiles(d);it.files=[];for(const f of files){it.files.push({name:f.name,type:f.type,size:f.size,data:f.blob?await blobToDataURL(f.blob):null});}out.documents.push(it);}return out;}
 async function exportAll(){if(!docs.length){toast("Niente da esportare","warn");return;}toast("Preparo il backup…");const out=await buildBackup();const blob=new Blob([JSON.stringify(out)],{type:"application/json"});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download="anestesia-vault-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);toast(`Backup esportato (${docs.length}) ✓`,"ok");}
 async function shareAll(){if(!docs.length){toast("Niente da esportare","warn");return;}const out=await buildBackup();const file=new File([JSON.stringify(out)],"anestesia-vault-backup-"+new Date().toISOString().slice(0,10)+".json",{type:"application/json"});if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:"Anestesia Vault backup"});return;}catch(e){if(e&&e.name==='AbortError')return;}}exportAll();}
-async function importAll(file){try{const data=JSON.parse(await file.text());const arr=data.documents||data;if(!Array.isArray(arr))throw new Error("Formato non valido");const merge=await chooseDlg(`Trovati ${arr.length} documenti`,["Unisci con l'archivio attuale","Sostituisci tutto"]);if(!merge)return;if(merge.startsWith("Sostituisci")){if(!await confirmDlg("Sostituire?","L'archivio attuale verrà cancellato.","Sostituisci",true))return;await dbClear();}let n=0;for(const it of arr){const doc={...it};if(doc.fileData){doc.file=await dataURLtoBlob(doc.fileData);delete doc.fileData;}if(!doc.id)doc.id=uid();if(!doc.addedAt)doc.addedAt=Date.now();await dbPut(doc);n++;}docs=await dbAll();refresh();toast(`Importati ${n} documenti ✓`,"ok");}catch(e){console.error(e);toast("Errore import: "+e.message,"err");}}
+async function importAll(file){try{const data=JSON.parse(await file.text());const arr=data.documents||data;if(!Array.isArray(arr))throw new Error("Formato non valido");const merge=await chooseDlg(`Trovati ${arr.length} documenti`,["Unisci con l'archivio attuale","Sostituisci tutto"]);if(!merge)return;if(merge.startsWith("Sostituisci")){if(!await confirmDlg("Sostituire?","L'archivio attuale verrà cancellato.","Sostituisci",true))return;await dbClear();}let n=0;for(const it of arr){const doc={...it};const files=[];
+  if(Array.isArray(it.files)){for(const f of it.files){files.push({name:f.name,type:f.type,size:f.size,blob:f.data?await dataURLtoBlob(f.data):(f.blob||null)});}}
+  else if(it.fileData){files.push({name:it.fileName,type:it.fileType,size:it.fileSize,blob:await dataURLtoBlob(it.fileData)});}
+  delete doc.fileData;delete doc.file;delete doc.fileName;delete doc.fileType;delete doc.fileSize;
+  doc.files=files;if(!doc.id)doc.id=uid();if(!doc.addedAt)doc.addedAt=Date.now();await dbPut(doc);n++;}
+  docs=await dbAll();refresh();toast(`Importati ${n} documenti ✓`,"ok");}catch(e){console.error(e);toast("Errore import: "+e.message,"err");}}
 function exportCsv(){if(!docs.length){toast("Niente da esportare","warn");return;}const cols=["title","category","hospital","author","date","tags","notes","fileName"];const head=["Titolo","Categoria","Ospedale","Inviato da","Data","Tag","Note","File"];const q=s=>'"'+String(s==null?"":s).replace(/"/g,'""')+'"';const rows=[head.join(",")].concat(docs.map(d=>cols.map(c=>q(c==="tags"?(d.tags||[]).join("; "):d[c])).join(",")));const blob=new Blob(["﻿"+rows.join("\r\n")],{type:"text/csv;charset=utf-8"});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download="anestesia-vault-elenco-"+new Date().toISOString().slice(0,10)+".csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);toast("CSV esportato ✓","ok");}
 async function resetAll(){if(!await confirmDlg("Svuotare tutto?","Esporta prima un backup se vuoi conservarlo. Operazione irreversibile.","Svuota",true))return;await dbClear();docs=[];refresh();toast("Archivio svuotato");}
 const SEED=[{title:"Blocco interscalenico ecoguidato — protocollo",category:"Locoregionale",hospital:"Osp. San Raffaele",author:"Dr. Bianchi",tags:["ecoguidato","arto superiore","ropivacaina"],notes:"Ropivacaina 0,5% 15-20 mL. Paziente semiseduto, sonda in-plane laterale."},{title:"Gestione vie aeree difficili — algoritmo",category:"Vie aeree",hospital:"Policlinico",author:"Dr.ssa Verdi",tags:["DAS","videolaringoscopio"],notes:"Algoritmo DAS 2015 adattato. Checklist pre-induzione allegata."},{title:"Analgesia post-cesareo — schema multimodale",category:"Ostetricia",hospital:"Osp. Sant'Anna",author:"Dr. Neri",tags:["TAP block","paracetamolo","FANS"],notes:"Morfina intratecale 100 mcg + TAP block bilaterale + paracetamolo/ketorolac."}];
-async function seed(){for(const s of SEED){await dbPut({id:uid(),...s,date:"",addedAt:Date.now()-Math.floor(Math.random()*1e7),updatedAt:Date.now(),file:null,fileName:"",fileType:"",fileSize:0});}docs=await dbAll();refresh();toast("Esempi caricati ✓","ok");}
+async function seed(){for(const s of SEED){await dbPut({id:uid(),...s,date:"",addedAt:Date.now()-Math.floor(Math.random()*1e7),updatedAt:Date.now(),files:[]});}docs=await dbAll();refresh();toast("Esempi caricati ✓","ok");}
 
 /* ---------- refresh current screen ---------- */
 function refresh(){renderDashboard();if(state.screen==='library')renderLibrary();if(state.screen==='categories')renderCategories();}
 
 /* ---------- theme ---------- */
-function applyTheme(t){document.documentElement.setAttribute('data-theme',t);$('#themeBtn').textContent=t==='dark'?'☀️':'🌙';document.querySelector('meta[name=theme-color]').setAttribute('content',t==='dark'?'#0b1413':'#f4faf9');localStorage.setItem('av-theme',t);}
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);$('#themeBtn').textContent=t==='dark'?'☀️':'🌙';document.querySelector('meta[name=theme-color]').setAttribute('content',t==='dark'?'#1a1110':'#fff3f1');localStorage.setItem('av-theme',t);}
 
 /* ---------- events ---------- */
 $$('.navbar button').forEach(b=>b.onclick=()=>go(b.dataset.go));
@@ -457,8 +468,8 @@ $('#scrim').onclick=closeAllSheets;
 $('#saveBtn').onclick=saveForm;$('#saveBtn2').onclick=saveForm;
 $('#detailEdit').onclick=()=>{closeSheet('detailSheet');openForm(detailId);};
 $('#newCatBtn').onclick=async()=>{const c=await promptDlg("Nuova categoria","Es. Trauma");if(c){const sel=$('#f_category');if(![...sel.options].some(o=>o.value===c))sel.add(new Option(c,c));sel.value=c;}};
-$('#f_file').onchange=e=>pickFile(e.target.files[0]);
-const drop=$('#drop');['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));drop.addEventListener('drop',e=>{if(e.dataTransfer.files[0])pickFile(e.dataTransfer.files[0]);});
+$('#f_file').onchange=e=>{pickFiles(e.target.files);e.target.value="";};
+const drop=$('#drop');['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));drop.addEventListener('drop',e=>{pickFiles(e.dataTransfer.files);});
 $('#searchInput').oninput=e=>{state.q=e.target.value;$('#searchWrap').classList.toggle('q',!!e.target.value);renderLibrary();};
 $('#searchClear').onclick=()=>{state.q="";$('#searchInput').value="";$('#searchWrap').classList.remove('q');renderLibrary();};
 $('#sortSel').onchange=e=>{state.sort=e.target.value;renderLibrary();};
