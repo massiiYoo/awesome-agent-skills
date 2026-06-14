@@ -1,0 +1,3 @@
+# Netlify: pubblica l'app Periop Link Vault dalla sua sottocartella.
+[build]
+  publish = "periop-link-vault"
