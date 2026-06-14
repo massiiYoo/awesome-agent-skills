@@ -10,7 +10,10 @@ Apri `index.html` con un server statico (necessario per il service worker):
 npx serve periop-link-vault   # oppure: python3 -m http.server
 ```
 
-Su Netlify: pubblica la cartella così com'è (il file `_redirects` gestisce l'SPA).
+Hosting (HTTPS necessario per la PWA, il file `_redirects` gestisce l'SPA):
+
+- **Cloudflare Pages** (consigliato, gratis, banda illimitata): *Workers & Pages → Create → Pages → Connect to Git* → repo `awesome-agent-skills` → Framework preset `None`, Build command *vuoto*, **Build output directory** `periop-link-vault` → *Save and Deploy*.
+- **Netlify**: importa il repo e imposta **Publish directory** `periop-link-vault` (build command vuoto).
 
 ## Interfaccia
 
