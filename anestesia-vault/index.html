@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anestesia Vault — Catalogo protocolli e linee guida</title>
+<style>
+  :root{
+    --bg:#0f1720; --panel:#15212e; --panel-2:#1b2a3a; --line:#243648;
+    --text:#e8eef4; --muted:#9fb1c2; --accent:#2dd4bf; --accent-2:#38bdf8;
+    --danger:#f87171; --warn:#fbbf24; --ok:#34d399; --chip:#22384b;
+    --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(180deg,#0c141d,#0f1720);color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;cursor:pointer}
+  /* ---------- Layout ---------- */
+  header{
+    position:sticky;top:0;z-index:20;display:flex;gap:14px;align-items:center;
+    padding:12px 18px;background:rgba(15,23,32,.85);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;white-space:nowrap}
+  .brand .logo{
+    width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#06251f;font-weight:900;
+  }
+  .brand small{display:block;font-weight:500;font-size:11px;color:var(--muted)}
+  .search{flex:1;position:relative}
+  .search input{
+    width:100%;padding:11px 14px 11px 40px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel);color:var(--text);font-size:14px;outline:none;
+  }
+  .search input:focus{border-color:var(--accent-2)}
+  .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.6}
+  .btn{
+    border:1px solid var(--line);background:var(--panel-2);color:var(--text);
+    padding:10px 14px;border-radius:10px;font-size:14px;font-weight:600;white-space:nowrap;
+    display:inline-flex;align-items:center;gap:7px;
+  }
+  .btn:hover{border-color:var(--accent-2)}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#06251f;border:none}
+  .btn.ghost{background:transparent}
+  .btn.danger{color:var(--danger)}
+  .dropdown{position:relative}
+  .menu{
+    position:absolute;right:0;top:calc(100% + 6px);background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;box-shadow:var(--shadow);min-width:210px;padding:6px;display:none;z-index:30;
+  }
+  .menu.open{display:block}
+  .menu button{
+    width:100%;text-align:left;background:transparent;border:none;color:var(--text);
+    padding:10px 12px;border-radius:8px;font-size:14px;display:flex;gap:8px;align-items:center;
+  }
+  .menu button:hover{background:var(--panel-2)}
+  .menu .sep{height:1px;background:var(--line);margin:6px 4px}
+
+  .layout{display:grid;grid-template-columns:260px 1fr;gap:0;min-height:calc(100vh - 63px)}
+  aside{
+    border-right:1px solid var(--line);padding:16px 12px;background:rgba(21,33,46,.4);
+    position:sticky;top:63px;height:calc(100vh - 63px);overflow:auto;
+  }
+  aside h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 8px 8px}
+  .cat{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:9px 10px;border-radius:9px;color:var(--text);font-size:14px;border:1px solid transparent;
+    background:transparent;width:100%;text-align:left;
+  }
+  .cat:hover{background:var(--panel-2)}
+  .cat.active{background:var(--chip);border-color:var(--accent);color:#fff}
+  .cat .count{font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);
+    padding:1px 8px;border-radius:20px;min-width:26px;text-align:center}
+  .cat.active .count{color:var(--accent)}
+  select.filter{
+    width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel);color:var(--text);font-size:13px;margin-top:4px;
+  }
+
+  main{padding:18px 22px 60px}
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .toolbar .title{font-size:20px;font-weight:700}
+  .toolbar .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .view-toggle{display:flex;gap:4px;border:1px solid var(--line);border-radius:9px;padding:3px;background:var(--panel)}
+  .view-toggle button{border:none;background:transparent;color:var(--muted);padding:7px 10px;border-radius:7px;font-size:13px}
+  .view-toggle button.active{background:var(--panel-2);color:var(--text)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .grid.list{grid-template-columns:1fr}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px;
+    display:flex;flex-direction:column;gap:10px;transition:border-color .15s,transform .15s;
+  }
+  .card:hover{border-color:var(--accent-2);transform:translateY(-2px)}
+  .card .ctop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .card h4{margin:0;font-size:15px;line-height:1.35}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--chip);
+    color:var(--accent);border:1px solid var(--line);white-space:nowrap}
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--muted)}
+  .meta-row .pill{background:var(--panel-2);border:1px solid var(--line);padding:3px 8px;border-radius:7px;display:inline-flex;gap:5px;align-items:center}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{font-size:11px;background:transparent;border:1px solid var(--line);color:var(--muted);padding:2px 8px;border-radius:20px}
+  .notes{font-size:13px;color:var(--muted);line-height:1.45;max-height:60px;overflow:hidden}
+  .file-line{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);
+    background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+  .file-line .fname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+  .card .actions{display:flex;gap:8px;margin-top:2px;flex-wrap:wrap}
+  .card .actions button{font-size:12px;padding:7px 10px}
+  .iconbtn{border:1px solid var(--line);background:var(--panel-2);color:var(--muted);border-radius:8px;padding:6px 8px}
+  .iconbtn:hover{color:var(--text);border-color:var(--accent-2)}
+
+  .empty{text-align:center;color:var(--muted);padding:60px 20px}
+  .empty .big{font-size:46px;margin-bottom:10px}
+  .empty h2{color:var(--text);margin:0 0 6px}
+
+  /* ---------- Modal ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(5,10,15,.7);backdrop-filter:blur(3px);z-index:50;
+    display:none;align-items:flex-start;justify-content:center;padding:30px 16px;overflow:auto}
+  .overlay.open{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;width:100%;max-width:620px;
+    box-shadow:var(--shadow);overflow:hidden}
+  .modal header{position:static;background:var(--panel-2);border-bottom:1px solid var(--line);padding:16px 20px}
+  .modal header h2{margin:0;font-size:17px}
+  .modal .body{padding:20px;display:flex;flex-direction:column;gap:14px;max-height:70vh;overflow:auto}
+  .modal .foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;background:var(--panel-2)}
+  label.field{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+  label.field span b{color:var(--text);font-weight:600}
+  .field input,.field textarea,.field select{
+    padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--text);
+    font-size:14px;font-family:inherit;outline:none;
+  }
+  .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent-2)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .drop{
+    border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--muted);
+    font-size:13px;cursor:pointer;background:var(--bg);
+  }
+  .drop.drag{border-color:var(--accent);color:var(--text);background:var(--panel-2)}
+  .drop b{color:var(--accent-2)}
+  .filechip{display:flex;align-items:center;gap:10px;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:10px;padding:10px 12px;font-size:13px}
+  .filechip .x{margin-left:auto;color:var(--danger);background:none;border:none;font-size:18px}
+  .hint{font-size:12px;color:var(--muted)}
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--panel);
+    border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;
+    padding:12px 18px;font-size:14px;box-shadow:var(--shadow);z-index:90;display:none;max-width:90vw;
+  }
+  .toast.show{display:block;animation:rise .25s ease}
+  .toast.err{border-left-color:var(--danger)}
+  @keyframes rise{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1}}
+  .stat{display:flex;gap:14px;color:var(--muted);font-size:12px;margin-top:6px}
+  @media(max-width:820px){
+    .layout{grid-template-columns:1fr}
+    aside{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)}
+    .brand small{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">A</div>
+    <div>Anestesia Vault<small>Catalogo protocolli &amp; linee guida</small></div>
+  </div>
+  <div class="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="search" type="search" placeholder="Cerca per titolo, ospedale, tag, contenuto…" autocomplete="off">
+  </div>
+  <button class="btn primary" id="addBtn">+ Documento</button>
+  <div class="dropdown">
+    <button class="btn ghost" id="backupBtn">Backup ▾</button>
+    <div class="menu" id="backupMenu">
+      <button data-act="export">⬇️ Esporta backup (.json)</button>
+      <button data-act="import">⬆️ Importa / Ripristina</button>
+      <div class="sep"></div>
+      <button data-act="csv">📄 Esporta elenco (CSV)</button>
+      <button data-act="reset" class="danger">🗑️ Svuota archivio</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <h3>Categorie</h3>
+    <div id="catList"></div>
+    <h3>Filtra per ospedale / fonte</h3>
+    <select class="filter" id="hospFilter"><option value="">Tutti gli ospedali</option></select>
+    <h3>Ordina</h3>
+    <select class="filter" id="sortBy">
+      <option value="added_desc">Aggiunti di recente</option>
+      <option value="received_desc">Data documento (recente)</option>
+      <option value="received_asc">Data documento (vecchio)</option>
+      <option value="title_asc">Titolo A→Z</option>
+    </select>
+    <div class="stat" id="stats"></div>
+  </aside>
+
+  <main>
+    <div class="toolbar">
+      <div>
+        <div class="title" id="viewTitle">Tutti i documenti</div>
+        <div class="sub" id="viewSub">—</div>
+      </div>
+      <div class="view-toggle">
+        <button data-view="grid" class="active" id="gridV">▦ Griglia</button>
+        <button data-view="list" id="listV">☰ Lista</button>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </main>
+</div>
+
+<!-- Add/Edit modal -->
+<div class="overlay" id="formOverlay">
+  <div class="modal">
+    <header><h2 id="formTitle">Nuovo documento</h2></header>
+    <div class="body">
+      <input type="hidden" id="docId">
+      <label class="field"><span><b>Titolo</b> *</span>
+        <input id="f_title" placeholder="Es. Blocco interscalenico — protocollo">
+      </label>
+      <div class="row2">
+        <label class="field"><span><b>Categoria</b> *</span>
+          <input id="f_category" list="catSuggest" placeholder="Es. Locoregionale">
+          <datalist id="catSuggest"></datalist>
+        </label>
+        <label class="field"><span>Ospedale / Fonte</span>
+          <input id="f_hospital" list="hospSuggest" placeholder="Es. Ospedale San Raffaele">
+          <datalist id="hospSuggest"></datalist>
+        </label>
+      </div>
+      <div class="row2">
+        <label class="field"><span>Inviato da (collega)</span>
+          <input id="f_author" placeholder="Es. Dr. Rossi">
+        </label>
+        <label class="field"><span>Data del documento</span>
+          <input id="f_date" type="date">
+        </label>
+      </div>
+      <label class="field"><span>Tag (separati da virgola)</span>
+        <input id="f_tags" placeholder="es. ecoguidato, arto superiore, ropivacaina">
+      </label>
+      <label class="field"><span>Note</span>
+        <textarea id="f_notes" rows="3" placeholder="Annotazioni, indicazioni, differenze rispetto al nostro protocollo…"></textarea>
+      </label>
+      <label class="field"><span>File (PDF, immagine, documento)</span></label>
+      <div class="drop" id="drop">Trascina qui un file oppure <b>clicca per selezionare</b><br><span class="hint">PDF, JPG, PNG, DOCX… — restano salvati nel tuo browser</span></div>
+      <input type="file" id="fileInput" style="display:none">
+      <div id="fileChipWrap"></div>
+    </div>
+    <div class="foot">
+      <button class="btn ghost" id="cancelForm">Annulla</button>
+      <button class="btn primary" id="saveForm">Salva</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="importInput" accept="application/json,.json" style="display:none">
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   Anestesia Vault — single-file offline app
+   Storage: IndexedDB (metadati + file Blob). Backup: JSON con file in base64.
+   ========================================================================= */
+const DEFAULT_CATEGORIES = [
+  "Locoregionale","Anestesia generale","Vie aeree","Terapia del dolore",
+  "Sedazione","Ostetricia","Pediatria","Terapia intensiva","Valutazione preoperatoria",
+  "Emergenze / ALS","Coagulazione & emotrasfusione","ERAS","Farmaci & dosaggi",
+  "Checklist & SOP","Altro"
+];
+const DB_NAME="AnestesiaVaultDB", STORE="documents", DB_VER=1;
+let state = { docs:[], category:"__all__", hospital:"", search:"", sort:"added_desc", view:"grid", editFile:null, editKeepFile:true };
+
+/* ---------- IndexedDB helpers ---------- */
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(DB_NAME,DB_VER);
+    r.onupgradeneeded=e=>{const db=e.target.result;
+      if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE,{keyPath:"id"});};
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  });
+}
+async function dbAll(){const db=await openDB();return new Promise((res,rej)=>{
+  const req=db.transaction(STORE,"readonly").objectStore(STORE).getAll();
+  req.onsuccess=()=>res(req.result||[]); req.onerror=()=>rej(req.error);});}
+async function dbPut(doc){const db=await openDB();return new Promise((res,rej)=>{
+  const tx=db.transaction(STORE,"readwrite"); tx.objectStore(STORE).put(doc);
+  tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);});}
+async function dbDel(id){const db=await openDB();return new Promise((res,rej)=>{
+  const tx=db.transaction(STORE,"readwrite"); tx.objectStore(STORE).delete(id);
+  tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);});}
+async function dbClear(){const db=await openDB();return new Promise((res,rej)=>{
+  const tx=db.transaction(STORE,"readwrite"); tx.objectStore(STORE).clear();
+  tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);});}
+
+/* ---------- Utils ---------- */
+const $ = s=>document.querySelector(s);
+const uid = ()=> (crypto.randomUUID? crypto.randomUUID() : "id-"+Date.now()+"-"+Math.random().toString(16).slice(2));
+const esc = s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function fmtSize(b){if(!b)return"";const u=["B","KB","MB","GB"];let i=0;while(b>=1024&&i<u.length-1){b/=1024;i++;}return b.toFixed(b<10&&i>0?1:0)+" "+u[i];}
+function fmtDate(s){if(!s)return"";const d=new Date(s);if(isNaN(d))return s;return d.toLocaleDateString("it-IT",{day:"2-digit",month:"short",year:"numeric"});}
+function fileIcon(t){t=t||"";if(t.includes("pdf"))return"📕";if(t.includes("image"))return"🖼️";if(t.includes("word")||t.includes("document"))return"📘";if(t.includes("sheet")||t.includes("excel"))return"📊";return"📄";}
+function toast(msg,err){const t=$("#toast");t.textContent=msg;t.className="toast show"+(err?" err":"");setTimeout(()=>t.className="toast",2800);}
+function blobToDataURL(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(blob);});}
+async function dataURLtoBlob(d){return (await fetch(d)).blob();}
+
+/* ---------- Render ---------- */
+function categoriesWithCounts(){
+  const counts={}; state.docs.forEach(d=>{counts[d.category]=(counts[d.category]||0)+1;});
+  const cats=new Set([...DEFAULT_CATEGORIES, ...Object.keys(counts)]);
+  return [...cats].sort((a,b)=>a.localeCompare(b,"it")).map(c=>({name:c,count:counts[c]||0}));
+}
+function renderSidebar(){
+  const cats=categoriesWithCounts();
+  const total=state.docs.length;
+  let html=`<button class="cat ${state.category==='__all__'?'active':''}" data-cat="__all__">
+      <span>📚 Tutti i documenti</span><span class="count">${total}</span></button>`;
+  cats.forEach(c=>{ if(c.count===0 && !DEFAULT_CATEGORIES.includes(c.name)) return;
+    html+=`<button class="cat ${state.category===c.name?'active':''}" data-cat="${esc(c.name)}">
+      <span>${esc(c.name)}</span><span class="count">${c.count}</span></button>`;});
+  $("#catList").innerHTML=html;
+  $("#catList").querySelectorAll(".cat").forEach(b=>b.onclick=()=>{state.category=b.dataset.cat;render();});
+
+  // hospital filter
+  const hosps=[...new Set(state.docs.map(d=>d.hospital).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"it"));
+  const sel=$("#hospFilter"); const cur=state.hospital;
+  sel.innerHTML=`<option value="">Tutti gli ospedali</option>`+hosps.map(h=>`<option value="${esc(h)}" ${cur===h?"selected":""}>${esc(h)}</option>`).join("");
+
+  // datalists
+  $("#catSuggest").innerHTML=cats.map(c=>`<option value="${esc(c.name)}">`).join("");
+  $("#hospSuggest").innerHTML=hosps.map(h=>`<option value="${esc(h)}">`).join("");
+
+  $("#stats").innerHTML=`<span>📄 ${total} documenti</span><span>🏥 ${hosps.length} ospedali</span>`;
+}
+function filteredDocs(){
+  let list=state.docs.slice();
+  if(state.category!=="__all__") list=list.filter(d=>d.category===state.category);
+  if(state.hospital) list=list.filter(d=>d.hospital===state.hospital);
+  const q=state.search.trim().toLowerCase();
+  if(q){ list=list.filter(d=>{
+    const hay=[d.title,d.category,d.hospital,d.author,d.notes,(d.tags||[]).join(" "),d.fileName].join(" ").toLowerCase();
+    return q.split(/\s+/).every(w=>hay.includes(w));
+  });}
+  const s=state.sort;
+  list.sort((a,b)=>{
+    if(s==="title_asc")return (a.title||"").localeCompare(b.title||"","it");
+    if(s==="received_desc")return (b.date||"")>(a.date||"")?1:-1;
+    if(s==="received_asc")return (a.date||"")>(b.date||"")?1:-1;
+    return (b.addedAt||0)-(a.addedAt||0); // added_desc
+  });
+  return list;
+}
+function render(){
+  renderSidebar();
+  const list=filteredDocs();
+  $("#viewTitle").textContent = state.category==="__all__"?"Tutti i documenti":state.category;
+  const bits=[];
+  bits.push(`${list.length} ${list.length===1?"documento":"documenti"}`);
+  if(state.hospital) bits.push("🏥 "+state.hospital);
+  if(state.search) bits.push('🔎 "'+state.search+'"');
+  $("#viewSub").textContent=bits.join("  ·  ");
+
+  const grid=$("#grid"); grid.className="grid"+(state.view==="list"?" list":"");
+  if(!list.length){
+    grid.className="grid";
+    grid.innerHTML=`<div class="empty" style="grid-column:1/-1">
+      <div class="big">${state.docs.length?"🔍":"🗂️"}</div>
+      <h2>${state.docs.length?"Nessun documento trovato":"Archivio vuoto"}</h2>
+      <p>${state.docs.length?"Prova a cambiare categoria, ospedale o ricerca.":"Aggiungi il primo protocollo con il pulsante <b>+ Documento</b>.<br>Esempio: categoria <b>Locoregionale</b> → protocolli dei vari ospedali."}</p>
+    </div>`; return;
+  }
+  grid.innerHTML=list.map(cardHTML).join("");
+  grid.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openFile(b.dataset.open));
+  grid.querySelectorAll("[data-dl]").forEach(b=>b.onclick=()=>downloadFile(b.dataset.dl));
+  grid.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openForm(b.dataset.edit));
+  grid.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>removeDoc(b.dataset.del));
+}
+function cardHTML(d){
+  const tags=(d.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join("");
+  const file=d.fileName?`<div class="file-line"><span>${fileIcon(d.fileType)}</span>
+      <span class="fname">${esc(d.fileName)}</span><span>${fmtSize(d.fileSize)}</span></div>`:"";
+  return `<div class="card">
+    <div class="ctop"><h4>${esc(d.title)}</h4><span class="badge">${esc(d.category)}</span></div>
+    <div class="meta-row">
+      ${d.hospital?`<span class="pill">🏥 ${esc(d.hospital)}</span>`:""}
+      ${d.author?`<span class="pill">👤 ${esc(d.author)}</span>`:""}
+      ${d.date?`<span class="pill">📅 ${fmtDate(d.date)}</span>`:""}
+    </div>
+    ${tags?`<div class="tags">${tags}</div>`:""}
+    ${d.notes?`<div class="notes">${esc(d.notes)}</div>`:""}
+    ${file}
+    <div class="actions">
+      ${d.fileName?`<button class="btn primary" data-open="${d.id}">Apri</button>
+        <button class="iconbtn" data-dl="${d.id}" title="Scarica">⬇️</button>`:""}
+      <button class="iconbtn" data-edit="${d.id}" title="Modifica">✏️</button>
+      <button class="iconbtn" data-del="${d.id}" title="Elimina">🗑️</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- File open/download ---------- */
+function openFile(id){const d=state.docs.find(x=>x.id===id);if(!d||!d.file)return;
+  const url=URL.createObjectURL(d.file);window.open(url,"_blank");
+  setTimeout(()=>URL.revokeObjectURL(url),60000);}
+function downloadFile(id){const d=state.docs.find(x=>x.id===id);if(!d||!d.file)return;
+  const url=URL.createObjectURL(d.file);const a=document.createElement("a");
+  a.href=url;a.download=d.fileName||(d.title+".bin");a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
+
+/* ---------- Form ---------- */
+function openForm(id){
+  const ov=$("#formOverlay"); state.editFile=null; state.editKeepFile=true;
+  if(id){
+    const d=state.docs.find(x=>x.id===id);
+    $("#formTitle").textContent="Modifica documento"; $("#docId").value=d.id;
+    $("#f_title").value=d.title||""; $("#f_category").value=d.category||"";
+    $("#f_hospital").value=d.hospital||""; $("#f_author").value=d.author||"";
+    $("#f_date").value=d.date||""; $("#f_tags").value=(d.tags||[]).join(", ");
+    $("#f_notes").value=d.notes||"";
+    renderFileChip(d.fileName?{name:d.fileName,size:d.fileSize,existing:true}:null);
+  }else{
+    $("#formTitle").textContent="Nuovo documento";
+    ["docId","f_title","f_category","f_hospital","f_author","f_date","f_tags","f_notes"].forEach(k=>$("#"+k).value="");
+    if(state.category!=="__all__")$("#f_category").value=state.category;
+    if(state.hospital)$("#f_hospital").value=state.hospital;
+    renderFileChip(null);
+  }
+  ov.classList.add("open"); $("#f_title").focus();
+}
+function closeForm(){$("#formOverlay").classList.remove("open");}
+function renderFileChip(info){
+  const wrap=$("#fileChipWrap");
+  if(!info){wrap.innerHTML="";return;}
+  wrap.innerHTML=`<div class="filechip"><span>${fileIcon(info.type||"")}</span>
+    <span>${esc(info.name)} <span class="hint">${info.size?fmtSize(info.size):""}</span></span>
+    <button class="x" id="rmFile" title="Rimuovi">×</button></div>`;
+  $("#rmFile").onclick=()=>{state.editFile=null;state.editKeepFile=false;renderFileChip(null);};
+}
+function pickFile(file){
+  if(!file)return;
+  if(file.size>40*1024*1024){toast("File troppo grande (max 40 MB).",true);return;}
+  state.editFile=file; state.editKeepFile=true;
+  renderFileChip({name:file.name,size:file.size,type:file.type});
+}
+async function saveForm(){
+  const title=$("#f_title").value.trim(), category=$("#f_category").value.trim()||"Altro";
+  if(!title){toast("Il titolo è obbligatorio.",true);$("#f_title").focus();return;}
+  const id=$("#docId").value||uid();
+  const existing=state.docs.find(x=>x.id===id);
+  const doc={
+    id, title, category,
+    hospital:$("#f_hospital").value.trim(),
+    author:$("#f_author").value.trim(),
+    date:$("#f_date").value,
+    tags:$("#f_tags").value.split(",").map(t=>t.trim()).filter(Boolean),
+    notes:$("#f_notes").value.trim(),
+    addedAt: existing?existing.addedAt:Date.now(),
+    updatedAt: Date.now(),
+    file:null,fileName:"",fileType:"",fileSize:0
+  };
+  if(state.editFile){
+    doc.file=state.editFile; doc.fileName=state.editFile.name;
+    doc.fileType=state.editFile.type; doc.fileSize=state.editFile.size;
+  }else if(existing && state.editKeepFile && existing.file){
+    doc.file=existing.file; doc.fileName=existing.fileName;
+    doc.fileType=existing.fileType; doc.fileSize=existing.fileSize;
+  }
+  await dbPut(doc);
+  state.docs = await dbAll();
+  closeForm(); render(); toast(existing?"Documento aggiornato ✓":"Documento salvato ✓");
+}
+async function removeDoc(id){
+  const d=state.docs.find(x=>x.id===id); if(!d)return;
+  if(!confirm(`Eliminare "${d.title}"? L'operazione non è reversibile.`))return;
+  await dbDel(id); state.docs=await dbAll(); render(); toast("Documento eliminato");
+}
+
+/* ---------- Backup ---------- */
+async function exportBackup(){
+  if(!state.docs.length){toast("Niente da esportare.",true);return;}
+  toast("Preparazione backup…");
+  const out={app:"Anestesia Vault",version:1,exportedAt:new Date().toISOString(),documents:[]};
+  for(const d of state.docs){
+    const item={...d}; delete item.file;
+    if(d.file){ item.fileData=await blobToDataURL(d.file); }
+    out.documents.push(item);
+  }
+  const blob=new Blob([JSON.stringify(out)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="anestesia-vault-backup-"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  toast(`Backup esportato (${state.docs.length} documenti) ✓`);
+}
+async function importBackup(file){
+  try{
+    const data=JSON.parse(await file.text());
+    const docs=data.documents||data; if(!Array.isArray(docs))throw new Error("Formato non valido");
+    const mode=confirm(`Trovati ${docs.length} documenti.\n\nOK = UNISCI con l'archivio attuale\nAnnulla = SOSTITUISCI tutto`) ? "merge":"replace";
+    if(mode==="replace"){ if(!confirm("Confermi? L'archivio attuale verrà cancellato."))return; await dbClear(); }
+    let n=0;
+    for(const it of docs){
+      const doc={...it};
+      if(doc.fileData){ doc.file=await dataURLtoBlob(doc.fileData); delete doc.fileData; }
+      else doc.file=doc.file||null;
+      if(!doc.id)doc.id=uid();
+      if(!doc.addedAt)doc.addedAt=Date.now();
+      await dbPut(doc); n++;
+    }
+    state.docs=await dbAll(); render();
+    toast(`Importati ${n} documenti ✓`);
+  }catch(e){ console.error(e); toast("Errore nell'importazione: "+e.message,true); }
+}
+function exportCSV(){
+  if(!state.docs.length){toast("Niente da esportare.",true);return;}
+  const cols=["title","category","hospital","author","date","tags","notes","fileName"];
+  const head=["Titolo","Categoria","Ospedale","Inviato da","Data","Tag","Note","File"];
+  const q=s=>'"'+String(s==null?"":s).replace(/"/g,'""')+'"';
+  const rows=[head.join(",")].concat(state.docs.map(d=>cols.map(c=>{
+    let v=d[c]; if(c==="tags")v=(d.tags||[]).join("; "); return q(v);
+  }).join(",")));
+  const blob=new Blob(["﻿"+rows.join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="anestesia-vault-elenco-"+new Date().toISOString().slice(0,10)+".csv";a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000); toast("Elenco CSV esportato ✓");
+}
+async function resetAll(){
+  if(!confirm("Svuotare completamente l'archivio? Esporta prima un backup se vuoi conservarlo."))return;
+  if(!confirm("Sei davvero sicuro? Operazione irreversibile."))return;
+  await dbClear(); state.docs=[]; render(); toast("Archivio svuotato");
+}
+
+/* ---------- Events ---------- */
+$("#addBtn").onclick=()=>openForm(null);
+$("#cancelForm").onclick=closeForm;
+$("#saveForm").onclick=saveForm;
+$("#formOverlay").onclick=e=>{if(e.target===$("#formOverlay"))closeForm();};
+$("#search").oninput=e=>{state.search=e.target.value;render();};
+$("#hospFilter").onchange=e=>{state.hospital=e.target.value;render();};
+$("#sortBy").onchange=e=>{state.sort=e.target.value;render();};
+$("#gridV").onclick=()=>{state.view="grid";$("#gridV").classList.add("active");$("#listV").classList.remove("active");render();};
+$("#listV").onclick=()=>{state.view="list";$("#listV").classList.add("active");$("#gridV").classList.remove("active");render();};
+
+const drop=$("#drop"),fileInput=$("#fileInput");
+drop.onclick=()=>fileInput.click();
+fileInput.onchange=e=>pickFile(e.target.files[0]);
+["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("drag");}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("drag");}));
+drop.addEventListener("drop",e=>{if(e.dataTransfer.files[0])pickFile(e.dataTransfer.files[0]);});
+
+// backup menu
+const backupMenu=$("#backupMenu");
+$("#backupBtn").onclick=e=>{e.stopPropagation();backupMenu.classList.toggle("open");};
+document.addEventListener("click",()=>backupMenu.classList.remove("open"));
+backupMenu.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+  const a=b.dataset.act;
+  if(a==="export")exportBackup();
+  else if(a==="import")$("#importInput").click();
+  else if(a==="csv")exportCSV();
+  else if(a==="reset")resetAll();
+});
+$("#importInput").onchange=e=>{if(e.target.files[0])importBackup(e.target.files[0]);e.target.value="";};
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape")closeForm();
+  if((e.ctrlKey||e.metaKey)&&e.key==="k"){e.preventDefault();$("#search").focus();}
+});
+
+/* ---------- Boot ---------- */
+(async function init(){
+  try{ state.docs=await dbAll(); }catch(e){ toast("Errore apertura archivio locale",true); }
+  render();
+})();
+</script>
+</body>
+</html>
