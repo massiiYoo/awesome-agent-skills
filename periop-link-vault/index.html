@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Periop Link Vault</title>
+  <meta name="description" content="Libreria clinica offline: salva DOI, categorizza articoli scientifici ed esegui backup." />
+  <meta name="theme-color" content="#fbf3dc" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Link Vault" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <script src="./assets/pdf.min.js"></script>
+  <style>
+    /* ---------- Material 3 (teal) tokens ---------- */
+    :root,[data-theme="light"]{
+      --primary:#4f46e5;--on-primary:#ffffff;--primary-container:#e6e1ff;--on-primary-container:#16135a;
+      --secondary-container:#e8e3fb;--on-secondary-container:#1f1b3a;
+      --bg:#fbf3dc;--surface:#fbf3dc;--s-lowest:#fffef8;--s-low:#fdf8ea;--s-1:#f4ecd1;--s-2:#ece1bd;--s-3:#e3d6a8;
+      --on-surface:#211d12;--on-variant:#5a5238;--outline:#8c8260;--outline-v:#ddd0a6;
+      --error:#ba1a1a;--error-c:#ffdad6;--on-error-c:#410002;--success:#1f8a4c;--warning:#9a6a0e;--danger:#c01f7a;
+      --grad:linear-gradient(135deg,#4f46e5,#9333ea);--grad-soft:linear-gradient(135deg,#6366f1,#a855f7);
+      --shadow:0 12px 36px rgba(90,70,25,.15);--shadow-1:0 2px 10px rgba(90,70,25,.10);
+      --font:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    }
+    [data-theme="dark"]{
+      --primary:#aab2ff;--on-primary:#1c1b4d;--primary-container:#383195;--on-primary-container:#e4e1ff;
+      --secondary-container:#272641;--on-secondary-container:#e4e3fb;
+      --bg:#0a0a12;--surface:#0a0a12;--s-lowest:#06060e;--s-low:#13131f;--s-1:#1a1926;--s-2:#222131;--s-3:#2d2c3e;
+      --on-surface:#e8e7f3;--on-variant:#bfbed1;--outline:#8887a1;--outline-v:#343343;
+      --error:#ffb4ab;--error-c:#93000a;--on-error-c:#ffdad6;--success:#7bd28b;--warning:#e0a458;--danger:#f078b6;
+      --grad:linear-gradient(135deg,#818cf8,#c084fc);--grad-soft:linear-gradient(135deg,#a5b4fc,#d8b4fe);
+      --shadow:0 12px 36px rgba(0,0,0,.55);--shadow-1:0 2px 10px rgba(0,0,0,.45);
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;min-width:0}
+    img,svg{max-width:100%}
+    html,body{overflow-x:clip}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--on-surface);font-family:var(--font);overscroll-behavior-y:none;width:100%;max-width:100%}
+    body{min-height:100vh}
+    button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;border:none;background:none}a{text-decoration:none;color:inherit}
+    :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+    h1,h2,h3,p{margin:0}
+    .app{max-width:720px;margin:0 auto;min-height:100vh}
+    main{padding:0 16px calc(132px + env(safe-area-inset-bottom))}
+
+    /* ---------- app bar ---------- */
+    .appbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px 10px 16px;padding-top:calc(10px + env(safe-area-inset-top));background:var(--bg);transition:box-shadow .2s,border-color .2s;border-bottom:1px solid transparent}
+    .appbar.elevated{box-shadow:var(--shadow-1);border-bottom-color:var(--outline-v)}
+    .appbar-title{font-size:1.1rem;font-weight:700;opacity:0;transform:translateY(4px);transition:opacity .2s,transform .2s}
+    .appbar.elevated .appbar-title{opacity:1;transform:none}
+    .appbar-actions{display:flex;gap:4px;align-items:center}
+    .icon-btn{width:44px;height:44px;border-radius:999px;display:grid;place-items:center;font-size:1.2rem;color:var(--on-variant);transition:background .15s}
+    .icon-btn:active{background:color-mix(in srgb,var(--on-surface) 12%,transparent)}
+
+    .large-title{font-size:2.1rem;font-weight:800;letter-spacing:-.02em;padding:6px 2px 2px;line-height:1.1}
+    .subtitle{color:var(--on-variant);padding:0 2px 14px;font-size:1rem}
+    .brand-hero{position:relative;padding:14px 2px 12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+    .brand-hero::before{content:"";position:absolute;top:-16px;left:0;width:min(220px,64vw);height:200px;background:radial-gradient(circle,color-mix(in srgb,var(--primary) 22%,transparent),transparent 68%);z-index:-1;pointer-events:none}
+    .brand-logo{width:50px;height:50px;border-radius:16px;background:var(--grad);display:grid;place-items:center;color:#fff;flex:0 0 auto;box-shadow:0 10px 24px color-mix(in srgb,var(--primary) 44%,transparent)}
+    .brand-logo svg{width:26px;height:26px}
+    .brand-txt{display:grid;gap:1px}
+    .wordmark{font-size:clamp(1.7rem,7vw,2.2rem);font-weight:800;letter-spacing:-.03em;line-height:1.05;margin:0}
+    .wordmark .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+    .brand-tag{color:var(--on-variant);font-size:.9rem;line-height:1.35}
+    .screen{display:none;animation:fade .28s ease}.screen.active{display:block}
+    @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+    @keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+    /* ---------- search & segmented ---------- */
+    .searchbar{display:flex;align-items:center;gap:10px;background:var(--s-2);border-radius:999px;padding:0 16px;min-height:52px;margin:4px 0 14px}
+    .searchbar input{flex:1;min-width:0;border:none;background:none;outline:none;min-height:50px;font-size:16px}
+    .searchbar .x{display:none;width:30px;height:30px;border-radius:999px;background:var(--s-3);place-items:center;color:var(--on-variant)}
+    .searchbar.q .x{display:grid}
+    .segmented{display:flex;background:var(--s-1);border-radius:999px;padding:4px;gap:2px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}.segmented::-webkit-scrollbar{display:none}
+    .segmented button{flex:1;white-space:nowrap;border-radius:999px;padding:9px 14px;font-size:.86rem;font-weight:700;color:var(--on-variant);transition:background .15s,color .15s;min-height:40px}
+    .segmented button.on{background:var(--primary-container);color:var(--on-primary-container)}
+    .lib-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+    .lib-toolbar select{background:var(--s-1);border:1px solid var(--outline-v);border-radius:999px;padding:8px 14px;min-height:42px;color:var(--on-surface);max-width:100%}
+    .lib-toolbar .count{margin-left:auto;color:var(--on-variant);font-size:.85rem;font-weight:700}
+    .text-btn{color:var(--primary);font-weight:700;padding:8px 12px;border-radius:999px}.text-btn:active{background:color-mix(in srgb,var(--primary) 12%,transparent)}
+
+    /* ---------- cards ---------- */
+    .group{margin-bottom:14px}
+    .group-h{display:flex;align-items:center;gap:4px}
+    .group-toggle{display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:10px 6px;color:var(--on-variant);font-size:.82rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;text-align:left;border-radius:12px}
+    .group-toggle:active{background:var(--s-1)}
+    .group-toggle .chev{font-size:.8rem;transition:transform .2s;flex:0 0 auto}
+    .group.collapsed .group-toggle .chev{transform:rotate(-90deg)}
+    .group-toggle .gname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .group-toggle .n{margin-left:auto;background:var(--s-2);border-radius:999px;padding:2px 10px;color:var(--on-variant);flex:0 0 auto}
+    .group-menu{flex:0 0 auto;width:38px;height:38px;border-radius:999px;display:grid;place-items:center;color:var(--on-variant);font-size:1.15rem;background:none;border:none}
+    .group-menu:active{background:var(--s-1)}
+    .group.collapsed .glist{display:none}
+    .cards{display:grid;gap:10px}
+    .item{position:relative;display:flex;gap:12px;align-items:flex-start;background:var(--s-low);border:1px solid var(--outline-v);border-radius:20px;padding:14px 16px;transition:transform .1s,background .15s}
+    .item:active{transform:scale(.985);background:var(--s-1)}
+    .item.sel{outline:2px solid var(--primary);background:var(--secondary-container)}
+    .item .dot{flex:0 0 auto;width:12px;height:12px;border-radius:50%;margin-top:6px}
+    .dot.s-later{background:var(--warning)}.dot.s-read{background:var(--success)}.dot.s-review{background:var(--danger)}
+    .item .body{flex:1;min-width:0}
+    .item h3{font-size:1rem;font-weight:700;line-height:1.32;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;width:100%}
+    .item .sub2{color:var(--on-variant);font-size:.86rem;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .item .chips{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+    .chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:4px 10px;font-size:.74rem;font-weight:700;background:var(--s-2);color:var(--on-variant)}
+    .chip.cat{background:var(--primary-container);color:var(--on-primary-container)}
+    .chip.st{cursor:pointer}.chip.s-later{background:color-mix(in srgb,var(--warning) 20%,var(--surface));color:var(--warning)}.chip.s-read{background:color-mix(in srgb,var(--success) 20%,var(--surface));color:var(--success)}.chip.s-review{background:color-mix(in srgb,var(--danger) 18%,var(--surface));color:var(--danger)}
+    .item .check{position:absolute;top:12px;right:14px;width:24px;height:24px;border-radius:50%;border:2px solid var(--outline);display:none;place-items:center;color:var(--on-primary)}
+    body.selecting .item .check{display:grid}body.selecting .item.sel .check{background:var(--primary);border-color:var(--primary)}
+
+    /* ---------- dashboard ---------- */
+    .dash{display:grid;gap:14px}
+    .metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .metric{background:var(--s-low);border:1px solid var(--outline-v);border-radius:20px;padding:14px;text-align:left}
+    .metric.accent{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 10px 26px color-mix(in srgb,var(--primary) 38%,transparent)}
+    .metric .k{font-size:.76rem;font-weight:700;opacity:.85}.metric .v{font-size:1.7rem;font-weight:800;margin-top:3px;line-height:1}
+    .card-soft{background:var(--s-low);border:1px solid var(--outline-v);border-radius:22px;padding:18px}
+    .card-soft h3{font-size:.82rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--on-variant);margin-bottom:14px}
+    .pbar{height:10px;background:var(--s-2);border-radius:999px;overflow:hidden;margin:6px 0 4px}.pbar span{display:block;height:100%;background:var(--grad);border-radius:999px;transition:width .4s}
+    .catbars{display:grid;gap:11px}
+    .catbar{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;font-size:.88rem}
+    .catbar .track{grid-column:1/3;height:8px;background:var(--s-2);border-radius:999px;overflow:hidden}.catbar .track span{display:block;height:100%;background:var(--grad)}
+    .quick{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .quick button{display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:var(--s-low);border:1px solid var(--outline-v);border-radius:20px;padding:16px;text-align:left;font-weight:700;transition:transform .1s}
+    .quick button:active{transform:scale(.97)}.quick .em{font-size:1.5rem}
+    .recent{display:grid;gap:10px}
+
+    /* ---------- buttons ---------- */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;min-height:50px;padding:13px 22px;font-weight:700;transition:transform .08s,filter .15s,background .15s}
+    .btn:active{transform:translateY(1px)}.btn[disabled]{opacity:.55;cursor:progress}
+    .filled{background:var(--primary);color:var(--on-primary)}
+    .tonal{background:var(--secondary-container);color:var(--on-secondary-container)}
+    .outline{background:transparent;border:1px solid var(--outline);color:var(--primary)}
+    .danger-btn{background:var(--error-c);color:var(--on-error-c)}
+    .full{width:100%}
+
+    /* fields */
+    .fields{display:grid;gap:14px}.field{display:grid;gap:6px}.field label{font-size:.85rem;font-weight:700;color:var(--on-variant);padding-left:4px}
+    input,select,textarea{width:100%;max-width:100%;background:var(--s-1);border:1px solid var(--outline-v);border-radius:14px;padding:14px 15px;outline:none;min-height:52px;font-size:16px}
+    input:focus,select:focus,textarea:focus{border-color:var(--primary)}
+    textarea{min-height:90px;resize:vertical}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hint{font-size:.83rem;color:var(--on-variant);padding:0 4px}
+    .flagrow{display:flex;gap:8px;flex-wrap:wrap}.flag{border:1px solid var(--outline);border-radius:999px;padding:9px 14px;font-weight:700;font-size:.86rem;color:var(--on-variant)}.flag.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+
+    /* ---------- FAB & nav ---------- */
+    .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom));z-index:25;display:inline-flex;align-items:center;gap:8px;height:56px;padding:0 24px;border-radius:18px;background:var(--grad);color:#fff;font-weight:800;font-size:1rem;box-shadow:0 10px 28px color-mix(in srgb,var(--primary) 50%,transparent)}
+    .fab:active{filter:brightness(.95)}.fab .plus{font-size:1.4rem;line-height:1}
+    .navbar{position:fixed;left:0;right:0;bottom:0;z-index:24;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:8px 6px calc(8px + env(safe-area-inset-bottom));background:var(--s-low);border-top:1px solid var(--outline-v);box-shadow:0 -4px 20px rgba(0,0,0,.06);transform:translateZ(0)}
+    .navbar button{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--on-variant);font-size:.64rem;font-weight:700;padding:4px 0;min-width:0}
+    .navbar .ind{width:52px;height:30px;border-radius:999px;display:grid;place-items:center;font-size:1.1rem;transition:background .2s}
+    .pdfpage{width:100%;display:block;border-radius:10px;box-shadow:var(--shadow-1);margin:0 auto 10px;background:#fff}
+    .item.rep{align-items:center}
+    .stars{display:flex;gap:1px;margin-top:8px}
+    .star{font-size:1.2rem;line-height:1;color:var(--outline-v);background:none;border:none;padding:3px;width:32px;height:32px}
+    .star.on{color:#f59e0b}
+    .sheet:fullscreen{height:100vh;max-height:100vh;width:100vw;border-radius:0;transform:none;background:var(--s-low)}
+    .sheet:fullscreen .grab{display:none}
+    .sheet:fullscreen .sheet-body{max-height:none;height:calc(100vh - 64px)}
+    .sheet:-webkit-full-screen{height:100vh;max-height:100vh;width:100vw;border-radius:0;transform:none;background:var(--s-low)}
+    .sheet:-webkit-full-screen .grab{display:none}
+    .navbar button.on{color:var(--on-surface)}.navbar button.on .ind{background:var(--primary-container);color:var(--on-primary-container)}
+
+    /* ---------- scrim, sheets ---------- */
+    .scrim{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.42);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s}
+    .scrim.show{opacity:1;visibility:visible}
+    .sheet{position:fixed;left:0;right:0;bottom:0;z-index:50;max-width:720px;margin:0 auto;background:var(--s-low);border-radius:28px 28px 0 0;box-shadow:var(--shadow);transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.8,.2,1);max-height:94vh;display:flex;flex-direction:column}
+    .sheet.open{transform:translateY(0)}
+    .sheet .grab{width:36px;height:4px;border-radius:999px;background:var(--outline-v);margin:10px auto 4px;flex:0 0 auto}
+    .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 14px 10px;flex:0 0 auto}
+    .sheet-head h2{font-size:1.15rem;font-weight:800}
+    .sheet-body{overflow-y:auto;padding:4px 18px calc(26px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+    body.locked{overflow:hidden}
+
+    /* detail */
+    .d-title{font-size:1.5rem;font-weight:800;line-height:1.18;letter-spacing:-.01em}
+    .d-authors{color:var(--on-variant);margin-top:6px}
+    .d-chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+    .d-meta{display:grid;gap:10px;background:var(--s-1);border-radius:18px;padding:14px 16px;margin:6px 0 16px}
+    .d-meta .r{display:flex;justify-content:space-between;gap:12px;font-size:.92rem}.d-meta .r .lab{color:var(--on-variant);flex:0 0 auto}.d-meta .r>span:last-child{text-align:right;min-width:0;word-break:break-word}
+    .d-sec{margin:16px 0}.d-sec .lab{font-size:.78rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--on-variant);margin-bottom:7px}
+    .d-abstract{line-height:1.55;color:var(--on-surface)}.d-abstract.clamp{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+    .d-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+    .link{color:var(--primary);font-weight:700;word-break:break-all}.mono{font-family:ui-monospace,Menlo,monospace}
+
+    /* select contextual bar */
+    .selectbar{position:fixed;top:0;left:0;right:0;z-index:35;max-width:720px;margin:0 auto;display:none;align-items:center;gap:6px;padding:10px 10px;padding-top:calc(10px + env(safe-area-inset-top));background:var(--primary-container);color:var(--on-primary-container);box-shadow:var(--shadow-1)}
+    body.selecting .selectbar{display:flex}
+    .selectbar .title{font-weight:800;margin-right:auto;padding-left:4px}
+    .selectbar .icon-btn{color:var(--on-primary-container)}
+
+    /* misc */
+    .drop{border:2px dashed var(--outline);background:var(--s-1);border-radius:22px;padding:22px;text-align:center}.drop.over{border-color:var(--primary);background:var(--primary-container)}
+    .progress{height:10px;background:var(--s-2);border-radius:999px;overflow:hidden}.progress span{display:block;height:100%;width:0;background:var(--primary);transition:width .25s}
+    .doi{background:var(--s-low);border:1px solid var(--outline-v);border-radius:18px;padding:14px 16px}
+    .toasts{position:fixed;left:0;right:0;bottom:calc(150px + env(safe-area-inset-bottom));z-index:60;display:grid;gap:8px;justify-items:center;pointer-events:none;padding:0 16px}
+    .toast{pointer-events:auto;background:var(--s-3);color:var(--on-surface);border-radius:14px;padding:13px 18px;box-shadow:var(--shadow);font-weight:600;font-size:.92rem;animation:fade .2s}
+    .toast.ok{background:var(--primary);color:var(--on-primary)}.toast.err{background:var(--error-c);color:var(--on-error-c)}.toast.warn{background:color-mix(in srgb,var(--warning) 30%,var(--s-3))}
+    dialog{border:none;border-radius:28px;padding:0;max-width:380px;width:calc(100% - 40px);background:var(--s-3);color:var(--on-surface);box-shadow:var(--shadow)}dialog::backdrop{background:rgba(0,0,0,.45)}
+    .dlg{padding:24px}.dlg h3{font-size:1.25rem;font-weight:800;margin-bottom:10px}.dlg p{color:var(--on-variant);line-height:1.5}.dlg .row{display:flex;justify-content:flex-end;gap:8px;margin-top:22px;flex-wrap:wrap}
+    .dlg .list{display:grid;gap:4px;margin-top:14px;max-height:50vh;overflow:auto}.dlg .list button{text-align:left;padding:14px;border-radius:14px;font-weight:600}.dlg .list button:active{background:var(--s-1)}
+    .spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block;animation:rot .7s linear infinite}@keyframes rot{to{transform:rotate(360deg)}}
+    .empty{display:grid;gap:10px;justify-items:center;text-align:center;padding:46px 16px;color:var(--on-variant)}.empty .big{font-size:2.6rem}
+    @media (max-width:380px){.d-actions{grid-template-columns:1fr}.metrics{gap:10px}.metric .v{font-size:1.7rem}}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="appbar" id="appbar">
+    <h2 class="appbar-title" id="barTitle">Home</h2>
+    <div class="appbar-actions">
+      <button class="icon-btn" id="themeBtn" aria-label="Cambia tema">🌙</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="screen active" id="home">
+      <div class="brand-hero">
+        <div class="brand-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-3.5L6 21z"/><path d="M8.5 10.5h2l1-2.1 1.4 3.1 1-1H16"/></svg></div>
+        <div class="brand-txt"><h1 class="wordmark"><span class="g">Periop</span> Vault</h1><p class="brand-tag">La tua libreria clinica, sempre con te.</p></div>
+      </div>
+      <div class="dash" id="dashboard"></div>
+    </section>
+
+    <section class="screen" id="library">
+      <h1 class="large-title">Libreria</h1>
+      <div class="searchbar" id="searchWrap"><span aria-hidden="true">🔎</span><input id="searchInput" aria-label="Cerca" placeholder="Cerca titolo, autore, DOI, tag" /><button class="x" id="searchClear" aria-label="Pulisci">✕</button></div>
+      <div class="segmented" id="statusSeg"></div>
+      <div class="lib-toolbar"><select id="sortSel" aria-label="Ordina"><option value="recent">Recenti</option><option value="year">Anno ↓</option><option value="title">Titolo</option><option value="priority">Priorità</option></select><button class="text-btn" id="collapseAll">Comprimi</button><button class="text-btn" id="selectToggle">Seleziona</button><span class="count" id="resultCount"></span></div>
+      <div class="cards" id="cards"></div>
+      <div id="emptyArchive" style="display:none"></div>
+    </section>
+
+    <section class="screen" id="pdf">
+      <h1 class="large-title">PDF → DOI</h1>
+      <div class="fields">
+        <div class="drop" id="drop"><strong>Carica weekly report PDF</strong><div class="hint" style="margin-top:6px">Trascina il file o toccalo. L'app legge il PDF, trova i DOI e lo salva nel tab <b>Report</b> per rileggerlo.</div><input id="pdfFile" type="file" accept="application/pdf" style="margin-top:14px" /></div>
+        <button class="btn filled full" type="button" id="extractBtn">Leggi PDF e trova DOI</button>
+        <button class="btn tonal full" type="button" id="savePdfBtn">💾 Salva il PDF in Report</button>
+        <div class="card-soft"><div class="hint" style="padding:0">Avanzamento</div><div class="progress" style="margin-top:8px"><span id="bar"></span></div><div class="hint" id="progressText" style="padding:8px 0 0">In attesa di un PDF</div></div>
+        <div style="display:flex;align-items:center;gap:12px"><div style="font-size:1.6rem;font-weight:800" id="doiCount">0</div><div class="hint" id="pdfMeta" style="flex:1;padding:0">Nessun PDF analizzato</div><button class="btn tonal" type="button" id="copyAllBtn" style="display:none;min-height:44px;padding:10px 16px">Copia tutti</button></div>
+        <div class="cards" id="doiList"></div>
+      </div>
+    </section>
+
+    <section class="screen" id="backup">
+      <h1 class="large-title">Backup</h1>
+      <div class="fields">
+        <p class="hint">I dati restano solo sul tuo dispositivo. Esporta un backup regolarmente.</p>
+        <div class="card-soft" style="padding:14px"><h3 style="margin-bottom:10px">Backup completo</h3><div class="hint" style="padding:0 0 12px">Articoli, categorie e PDF in un unico file ZIP.</div><button class="btn filled full" type="button" id="exportAllBtn">⬇️ Esporta tutto (ZIP)</button><button class="btn tonal full" type="button" id="shareAllBtn" style="margin-top:10px">📤 Condividi / salva su Drive</button><label class="btn tonal full" for="importAllZip" style="cursor:pointer;margin-top:10px">⬆️ Importa tutto (ZIP)</label><input id="importAllZip" type="file" accept=".zip,application/zip" hidden /><div class="hint" style="padding:10px 2px 0">Suggerimento: installa l'app (menu browser → "Aggiungi a schermata Home") per proteggere meglio i dati.</div></div>
+        <div style="height:1px;background:var(--outline-v);margin:4px 0"></div>
+        <p class="hint">Solo articoli / interoperabilità:</p>
+        <button class="btn outline full" type="button" id="exportJsonBtn">Esporta JSON (articoli)</button>
+        <label class="btn outline full" for="importJson" style="cursor:pointer">Importa JSON</label>
+        <input id="importJson" type="file" accept="application/json" hidden />
+        <div class="grid2"><button class="btn outline" type="button" id="exportBibBtn">BibTeX</button><button class="btn outline" type="button" id="exportRisBtn">RIS</button></div>
+        <p class="hint">BibTeX/RIS si importano in Zotero, Mendeley o EndNote.</p>
+        <div style="height:1px;background:var(--outline-v);margin:4px 0"></div>
+        <button class="btn outline full" type="button" id="seedBtn">Carica esempi</button>
+      </div>
+    </section>
+
+    <section class="screen" id="report">
+      <h1 class="large-title">Report</h1>
+      <p class="subtitle" style="padding:0 2px 12px">I PDF che carichi vengono salvati qui: rileggi il digest mensile completo quando vuoi.</p>
+      <div class="lib-toolbar"><select id="reportSort" aria-label="Ordina report"><option value="recent">Recenti</option><option value="rating">Voto ↓</option><option value="name">Nome</option></select></div>
+      <div class="cards" id="reportList"></div>
+    </section>
+  </main>
+</div>
+
+<button class="fab" id="fab"><span class="plus">＋</span> Nuovo</button>
+<nav class="navbar">
+  <button class="on" data-go="home"><span class="ind">🏠</span>Home</button>
+  <button data-go="library"><span class="ind">📚</span>Libreria</button>
+  <button data-go="pdf"><span class="ind">📄</span>PDF</button>
+  <button data-go="report"><span class="ind">🗞️</span>Report</button>
+  <button data-go="backup"><span class="ind">💾</span>Backup</button>
+</nav>
+
+<div class="selectbar" id="selectbar">
+  <button class="icon-btn" id="selClose" aria-label="Chiudi selezione">✕</button>
+  <span class="title" id="selCount">0</span>
+  <button class="icon-btn" id="selStatus" aria-label="Cambia stato" title="Stato">🔖</button>
+  <button class="icon-btn" id="selCat" aria-label="Sposta categoria" title="Categoria">🗂️</button>
+  <button class="icon-btn" id="selExport" aria-label="Esporta selezione" title="Esporta">📤</button>
+  <button class="icon-btn" id="selDelete" aria-label="Elimina selezione" title="Elimina">🗑️</button>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<section class="sheet detail" id="detailSheet" aria-hidden="true"><div class="grab"></div><div class="sheet-head"><h2>Dettaglio</h2><button class="icon-btn" data-close aria-label="Chiudi">✕</button></div><div class="sheet-body" id="detailBody"></div></section>
+
+<section class="sheet form" id="readerSheet" aria-hidden="true"><div class="grab"></div><div class="sheet-head"><button class="text-btn" data-close>Chiudi</button><h2 id="readerTitle" style="flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1rem">PDF</h2><button class="icon-btn" id="readerFs" aria-label="Schermo intero">⛶</button><button class="icon-btn" id="readerDl" aria-label="Scarica PDF">⬇️</button><button class="icon-btn" id="readerDel" aria-label="Elimina PDF">🗑️</button></div><div class="segmented" id="readerSeg" style="margin:0 16px 8px;flex:0 0 auto"><button type="button" data-rv="pdf" class="on">📄 PDF</button><button type="button" data-rv="dois">🔗 DOI</button></div><div class="sheet-body" id="readerScroll"><div id="readerPages"></div><div id="readerDois" style="display:none"></div></div></section>
+
+<section class="sheet form" id="formSheet" aria-hidden="true">
+  <div class="grab"></div>
+  <div class="sheet-head"><button class="text-btn" data-close>Annulla</button><h2 id="formTitle">Nuovo</h2><button class="text-btn" id="saveBtn" style="color:var(--primary);font-weight:800">Salva</button></div>
+  <div class="sheet-body">
+    <form id="form" class="fields">
+      <div class="grid2"><div class="field"><label for="impId">Importa DOI / PMID</label><input id="impId" placeholder="10.xxxx/...  o  PMID" /></div><div class="field" style="align-self:end"><button class="btn tonal" type="button" id="impBtn" style="min-height:52px">Importa</button></div></div>
+      <div class="field"><label for="title">Titolo *</label><input id="title" required /></div>
+      <div class="field"><label for="authors">Autori</label><input id="authors" placeholder="Cognome N., ..." /></div>
+      <div class="field"><label for="url">URL *</label><input id="url" type="url" required /></div>
+      <div class="grid2"><div class="field"><label for="category">Categoria</label><div style="display:flex;gap:8px"><select id="category"></select><button class="btn tonal" type="button" id="newCatBtn" title="Nuova categoria" aria-label="Nuova categoria" style="flex:0 0 auto;min-height:52px;padding:0 18px;font-size:1.2rem">＋</button></div></div><div class="field"><label for="status">Stato</label><select id="status"></select></div></div>
+      <div class="grid2"><div class="field"><label for="priority">Priorità</label><select id="priority"></select></div><div class="field"><label for="year">Anno</label><input id="year" type="number" /></div></div>
+      <div class="grid2"><div class="field"><label for="journal">Rivista</label><input id="journal" /></div><div class="field"><label for="pmid">PMID</label><input id="pmid" /></div></div>
+      <div class="field"><label for="doi">DOI</label><input id="doi" /></div>
+      <div class="field"><label for="abstract">Abstract</label><textarea id="abstract"></textarea></div>
+      <div class="field"><label for="tags">Tag (separati da virgola)</label><input id="tags" /></div>
+      <div class="field"><label for="takeaway">Takeaway clinico</label><textarea id="takeaway"></textarea></div>
+      <div class="field"><label for="notes">Note</label><textarea id="notes"></textarea></div>
+      <div class="field"><label>Flag</label><div class="flagrow" id="flags"></div></div>
+      <button class="btn filled full" type="submit" style="margin-top:4px">Salva articolo</button>
+    </form>
+  </div>
+</section>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<dialog id="dlg"></dialog>
+<script>
+const STORE='periop-v9-netlify',PREFS='periop-prefs',CATS='periop-cats';
+const defaultCategories=['Anestesia generale','Vie aeree','Terapia intensiva','Analgesia regionale','ERAS','Monitoraggio','Farmacologia','Ecografia/POCUS','Linee guida','Spunti ricerca','Cambio pratica clinica','Importante'];
+let categories=[...defaultCategories];
+const statuses=['Da leggere','Letto','Da rivedere'],priorities=['Alta','Media','Bassa'];
+let app={links:[],editing:null,theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light',dois:[],pdfName:'',pdfText:'',sort:'recent',filter:'Tutti',selected:new Set(),viewing:null,cats:[],collapsed:new Set(),pdfs:[],reading:null,pdfCtx:null,reportSort:'recent'};
+const $=id=>document.getElementById(id);
+const screenTitles={home:'Home',library:'Libreria',pdf:'PDF → DOI',report:'Report',backup:'Backup'};
+
+/* storage */
+function save(){localStorage.setItem(STORE,JSON.stringify(app.links))}
+function load(){try{app.links=(JSON.parse(localStorage.getItem(STORE)||'[]')||[]).map(sanitize)}catch{app.links=[]}}
+function savePrefs(){try{localStorage.setItem(PREFS,JSON.stringify({theme:app.theme,sort:app.sort,filter:app.filter,collapsed:[...app.collapsed],reportSort:app.reportSort}))}catch{}}
+function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PREFS)||'{}');if(p.theme)app.theme=p.theme;if(p.sort)app.sort=p.sort;if(p.filter)app.filter=p.filter;if(p.reportSort)app.reportSort=p.reportSort;if(Array.isArray(p.collapsed))app.collapsed=new Set(p.collapsed);}catch{}}
+function rebuildCats(){categories=[...new Set([...defaultCategories,...app.cats,...app.links.map(l=>l.category).filter(Boolean)])]}
+function loadCats(){try{const c=JSON.parse(localStorage.getItem(CATS)||'[]');app.cats=Array.isArray(c)?c.filter(x=>typeof x==='string'&&x.trim()):[]}catch{app.cats=[]}rebuildCats()}
+function saveCats(){try{localStorage.setItem(CATS,JSON.stringify(app.cats))}catch{}}
+function addCategory(name){name=(name||'').trim();if(!name)return null;if(!app.cats.includes(name)&&!defaultCategories.includes(name)){app.cats.push(name);saveCats()}rebuildCats();return name}
+function esc(s=''){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
+
+/* data hygiene */
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function sanitize(x){x=x&&typeof x==='object'?x:{};const now=new Date().toISOString();return{
+  id:x.id||uid(),title:String(x.title||'').trim(),url:String(x.url||'').trim(),
+  category:categories.includes(x.category)?x.category:(x.category||categories[0]),
+  status:statuses.includes(x.status)?x.status:statuses[0],
+  priority:priorities.includes(x.priority)?x.priority:priorities[1],
+  year:String(x.year||'').trim(),authors:String(x.authors||'').trim(),journal:String(x.journal||'').trim(),
+  pmid:String(x.pmid||'').trim(),doi:String(x.doi||'').trim(),abstract:String(x.abstract||'').trim(),
+  tags:Array.isArray(x.tags)?x.tags.map(t=>String(t).trim()).filter(Boolean):[],
+  takeaway:String(x.takeaway||'').trim(),notes:String(x.notes||'').trim(),
+  flags:{guideline:!!(x.flags&&x.flags.guideline),practice:!!(x.flags&&x.flags.practice),fulltext:!!(x.flags&&x.flags.fulltext)},
+  createdAt:x.createdAt||now,updatedAt:x.updatedAt||x.createdAt||now}}
+function normDoi(d){return String(d||'').replace(/^https?:\/\/doi\.org\//i,'').trim().toLowerCase()}
+function dedupKey(x){return normDoi(x.doi)||(x.url||'').trim().toLowerCase()||(x.title||'').trim().toLowerCase()}
+function findDuplicate(item,exceptId){const k=dedupKey(item);if(!k)return null;return app.links.find(x=>x.id!==exceptId&&dedupKey(x)===k)||null}
+const stClass=s=>s==='Letto'?'s-read':s==='Da rivedere'?'s-review':'s-later';
+
+/* toast & dialogs */
+function toast(msg,type='',ms=2600){const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;$('toasts').appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300)},ms)}
+function dialog({title,message,actions}){return new Promise(res=>{const d=$('dlg');d.innerHTML=`<div class="dlg"><h3>${esc(title)}</h3>${message?`<p>${esc(message)}</p>`:''}<div class="row">${actions.map((a,i)=>`<button class="btn ${a.variant||'tonal'}" data-i="${i}" style="min-height:44px;padding:11px 18px">${esc(a.label)}</button>`).join('')}</div></div>`;const click=e=>{const b=e.target.closest('[data-i]');if(!b)return;done(actions[+b.dataset.i].value)};const cancel=()=>done(null);function done(v){d.removeEventListener('click',click);d.removeEventListener('cancel',cancel);d.close();res(v)}d.addEventListener('click',click);d.addEventListener('cancel',cancel);d.showModal()})}
+const confirmAction=(t,m,ok='Conferma',variant='filled')=>dialog({title:t,message:m,actions:[{label:'Annulla',value:false,variant:'outline'},{label:ok,value:true,variant}]});
+function pickFromList(title,items){return new Promise(res=>{const d=$('dlg');d.innerHTML=`<div class="dlg"><h3>${esc(title)}</h3><div class="list">${items.map((it,i)=>`<button data-i="${i}">${esc(it)}</button>`).join('')}</div></div>`;const click=e=>{const b=e.target.closest('[data-i]');if(!b)return;done(items[+b.dataset.i])};const cancel=()=>done(null);function done(v){d.removeEventListener('click',click);d.removeEventListener('cancel',cancel);d.close();res(v)}d.addEventListener('click',click);d.addEventListener('cancel',cancel);d.showModal()})}
+function promptDialog(title,placeholder,value=''){return new Promise(res=>{const d=$('dlg');d.innerHTML=`<div class="dlg"><h3>${esc(title)}</h3><input id="dlgInput" placeholder="${esc(placeholder||'')}" value="${esc(value)}" style="margin-top:6px" /><div class="row"><button class="btn outline" data-v="0" style="min-height:44px;padding:11px 18px">Annulla</button><button class="btn filled" data-v="1" style="min-height:44px;padding:11px 18px">OK</button></div></div>`;const inp=d.querySelector('#dlgInput');const click=e=>{const b=e.target.closest('[data-v]');if(!b)return;done(b.dataset.v==='1'?inp.value:null)};const cancel=()=>done(null);const key=e=>{if(e.key==='Enter'){e.preventDefault();done(inp.value)}};function done(v){d.removeEventListener('click',click);d.removeEventListener('cancel',cancel);inp.removeEventListener('keydown',key);d.close();res(v&&v.trim()?v.trim():null)}d.addEventListener('click',click);d.addEventListener('cancel',cancel);inp.addEventListener('keydown',key);d.showModal();setTimeout(()=>inp.focus(),60)})}
+async function pickCategory(title='Categoria',exclude=null){const NEW='➕ Nuova categoria…';const list=categories.filter(c=>c!==exclude);const c=await pickFromList(title,[...list,NEW]);if(c===null)return null;if(c===NEW){const name=await promptDialog('Nuova categoria','Es. Emodinamica');return name?addCategory(name):null}return c}
+async function categoryMenu(cat){const act=await dialog({title:cat,message:`${app.links.filter(l=>(l.category||'')===cat).length} articoli`,actions:[{label:'Rinomina',value:'rename',variant:'tonal'},{label:'Elimina',value:'delete',variant:'danger-btn'},{label:'Annulla',value:null,variant:'outline'}]});if(act==='rename')renameCategory(cat);else if(act==='delete')deleteCategory(cat)}
+async function renameCategory(cat){const name=await promptDialog('Rinomina categoria','Nuovo nome',cat);if(!name||name===cat)return;let n=0;const now=new Date().toISOString();app.links.forEach(l=>{if((l.category||'')===cat){l.category=name;l.updatedAt=now;n++}});app.cats=app.cats.filter(c=>c!==cat);if(!defaultCategories.includes(name)&&!app.cats.includes(name))app.cats.push(name);if(app.collapsed.has(cat)){app.collapsed.delete(cat);app.collapsed.add(name)}saveCats();save();savePrefs();rebuildCats();renderLibrary();toast(`Rinominata in "${name}"${n?` (${n} articoli)`:''}`,'ok')}
+async function deleteCategory(cat){const items=app.links.filter(l=>(l.category||'')===cat);if(items.length){const dest=await pickCategory(`Sposta ${items.length} articoli in…`,cat);if(!dest)return;const now=new Date().toISOString();items.forEach(l=>{l.category=dest;l.updatedAt=now});save();toast(`Articoli spostati in "${dest}"`,'ok')}else{const ok=await confirmAction('Eliminare categoria?',`"${cat}" verrà rimossa.`,'Elimina','danger-btn');if(!ok)return;toast('Categoria eliminata','ok')}app.cats=app.cats.filter(c=>c!==cat);app.collapsed.delete(cat);saveCats();savePrefs();rebuildCats();renderLibrary()}
+
+/* form helpers */
+function fillSelects(){rebuildCats();$('category').innerHTML=categories.map(v=>`<option>${esc(v)}</option>`).join('');$('status').innerHTML=statuses.map(v=>`<option>${v}</option>`).join('');$('priority').innerHTML=priorities.map(v=>`<option>${v}</option>`).join('')}
+function renderFlags(f={}){$('flags').innerHTML=['guideline','practice','fulltext'].map(k=>`<button type="button" class="flag ${f[k]?'on':''}" data-flag="${k}" aria-pressed="${!!f[k]}">${k==='guideline'?'Guideline':k==='practice'?'Practice changing':'Full text'}</button>`).join('')}
+function collectFlags(){const g=k=>{const el=document.querySelector('[data-flag="'+k+'"]');return!!(el&&el.classList.contains('on'))};return{guideline:g('guideline'),practice:g('practice'),fulltext:g('fulltext')}}
+
+/* theme & nav */
+function theme(){document.documentElement.setAttribute('data-theme',app.theme);$('themeBtn').textContent=app.theme==='dark'?'☀️':'🌙';document.querySelector('meta[name=theme-color]').setAttribute('content',app.theme==='dark'?'#0a0a12':'#fbf3dc')}
+let titleObserver=null;
+function observeTitle(id){if(titleObserver)titleObserver.disconnect();const lt=document.querySelector('#'+id+' .large-title, #'+id+' .brand-hero');if(!lt||!('IntersectionObserver'in window)){$('appbar').classList.toggle('elevated',false);return}titleObserver=new IntersectionObserver(es=>{$('appbar').classList.toggle('elevated',!es[0].isIntersecting)},{rootMargin:'-56px 0px 0px 0px',threshold:0});titleObserver.observe(lt)}
+function screen(id){document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.navbar button').forEach(x=>x.classList.toggle('on',x.dataset.go===id));$('barTitle').textContent=screenTitles[id]||'';$('fab').style.display=(id==='home'||id==='library')?'inline-flex':'none';window.scrollTo(0,0);observeTitle(id);if(id==='home')renderHome();if(id==='library')renderLibrary();if(id==='pdf')renderDois();if(id==='report')renderReports()}
+
+/* ---------- HOME dashboard ---------- */
+function renderHome(){const L=app.links,total=L.length;const read=L.filter(x=>x.status==='Letto').length,later=L.filter(x=>x.status==='Da leggere').length,review=L.filter(x=>x.status==='Da rivedere').length;const pct=total?Math.round(read/total*100):0;
+  const byCat=new Map();L.forEach(x=>byCat.set(x.category,(byCat.get(x.category)||0)+1));const top=[...byCat.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5);const max=top.length?top[0][1]:1;
+  const recent=[...L].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,3);
+  $('dashboard').innerHTML=`
+  <div class="metrics">
+    <button class="metric accent" data-open-lib="Tutti"><div class="k">Totale articoli</div><div class="v">${total}</div></button>
+    <button class="metric" data-open-lib="Da leggere"><div class="k">Da leggere</div><div class="v">${later}</div></button>
+    <button class="metric" data-open-lib="Letto"><div class="k">Letti</div><div class="v">${read}</div></button>
+    <button class="metric" data-open-lib="Da rivedere"><div class="k">Da rivedere</div><div class="v">${review}</div></button>
+  </div>
+  <div class="card-soft"><h3>Progresso di lettura</h3><div class="pbar"><span style="width:${pct}%"></span></div><div class="hint" style="padding:2px 0 0">${read} di ${total} letti · ${pct}%</div></div>
+  ${top.length?`<div class="card-soft"><h3>Per categoria</h3><div class="catbars">${top.map(([c,n])=>`<div class="catbar"><span>${esc(c)}</span><strong>${n}</strong><div class="track"><span style="width:${Math.round(n/max*100)}%"></span></div></div>`).join('')}</div></div>`:''}
+  <div class="quick">
+    <button class="quick-b" data-act="new"><span class="em">➕</span>Nuovo articolo</button>
+    <button class="quick-b" data-act="pdf"><span class="em">📄</span>Importa da PDF</button>
+  </div>
+  ${recent.length?`<div class="card-soft"><h3>Aggiunti di recente</h3><div class="recent" id="recentList">${recent.map(itemHtml).join('')}</div></div>`:`<div class="empty"><div class="big">📚</div><div>Nessun articolo. Inizia aggiungendone uno.</div><button class="btn filled" data-act="new" style="margin-top:6px">Aggiungi articolo</button></div>`}`;
+}
+$('dashboard').addEventListener('click',e=>{const lib=e.target.closest('[data-open-lib]');const act=e.target.closest('[data-act]');const item=e.target.closest('[data-id]');if(lib){app.filter=lib.dataset.openLib;savePrefs();screen('library');return}if(act){if(act.dataset.act==='new')openForm();else screen('pdf');return}if(item){openDetail(item.dataset.id)}});
+
+/* ---------- LIBRARY ---------- */
+function renderStatusSeg(){const opts=['Tutti',...statuses];$('statusSeg').innerHTML=opts.map(s=>`<button data-status="${esc(s)}" class="${app.filter===s?'on':''}">${esc(s)}</button>`).join('')}
+function sortItems(items){const ix=p=>priorities.indexOf(p);const a=[...items];if(app.sort==='year')a.sort((x,y)=>(+y.year||0)-(+x.year||0));else if(app.sort==='title')a.sort((x,y)=>x.title.localeCompare(y.title,'it'));else if(app.sort==='priority')a.sort((x,y)=>ix(x.priority)-ix(y.priority));else a.sort((x,y)=>(y.createdAt||'').localeCompare(x.createdAt||''));return a}
+function itemHtml(x){const sel=app.selected.has(x.id)?'sel':'';const sub=[x.authors,x.journal,x.year].filter(Boolean).join(' · ')||'Dettagli non disponibili';return `<article class="item ${sel}" data-id="${x.id}"><span class="dot ${stClass(x.status)}"></span><div class="body"><h3>${esc(x.title||'Senza titolo')}</h3><div class="sub2">${esc(sub)}</div><div class="chips"><span class="chip cat">${esc(x.category)}</span><span class="chip st ${stClass(x.status)}" data-cycle="${x.id}">${esc(x.status)}</span>${x.flags&&x.flags.guideline?'<span class="chip">Guideline</span>':''}</div></div><span class="check">✓</span></article>`}
+function renderLibrary(){renderStatusSeg();$('sortSel').value=app.sort;const q=$('searchInput').value.trim().toLowerCase();let items=app.links.filter(x=>!q||[x.title,x.authors,x.doi,x.pmid,(x.tags||[]).join(' '),x.takeaway,x.notes,x.category,x.journal,x.abstract].join(' ').toLowerCase().includes(q));if(app.filter!=='Tutti')items=items.filter(x=>x.status===app.filter);$('resultCount').textContent=app.links.length?`${items.length}/${app.links.length}`:'';
+  if(!items.length){$('cards').innerHTML='';$('emptyArchive').style.display='block';$('emptyArchive').innerHTML=app.links.length?`<div class="empty"><div class="big">🔍</div><div>Nessun risultato.</div></div>`:`<div class="empty"><div class="big">📚</div><div>Libreria vuota.</div><button class="btn filled" data-act="new" style="margin-top:6px">Aggiungi il primo</button></div>`;return}
+  $('emptyArchive').style.display='none';items=sortItems(items);const grouped=new Map();items.forEach(x=>{const k=x.category||'Senza categoria';if(!grouped.has(k))grouped.set(k,[]);grouped.get(k).push(x)});const ordered=[...categories.filter(c=>grouped.has(c)),...[...grouped.keys()].filter(c=>!categories.includes(c))];
+  $('cards').innerHTML=ordered.map(cat=>{const col=!q&&app.collapsed.has(cat);return `<section class="group ${col?'collapsed':''}"><div class="group-h"><button class="group-toggle" type="button" data-cat-toggle="${esc(cat)}" aria-expanded="${col?'false':'true'}"><span class="chev">▾</span><span class="gname">${esc(cat)}</span><span class="n">${grouped.get(cat).length}</span></button><button class="group-menu" type="button" data-cat-menu="${esc(cat)}" aria-label="Opzioni categoria">⋯</button></div><div class="cards glist">${grouped.get(cat).map(itemHtml).join('')}</div></section>`}).join('');$('collapseAll').textContent=ordered.some(c=>!app.collapsed.has(c))?'Comprimi':'Espandi'}
+$('emptyArchive').addEventListener('click',e=>{if(e.target.closest('[data-act="new"]'))openForm()});
+
+/* card interactions: tap=detail, tap status chip=cycle, long-press=select */
+let pressTimer=null,pressId=null,moved=false;
+function onCardDown(e){const item=e.target.closest('.item');if(!item)return;pressId=item.dataset.id;moved=false;pressTimer=setTimeout(()=>{pressTimer=null;if(!document.body.classList.contains('selecting'))enterSelect();toggleSelect(pressId)},500)}
+function clearPress(){if(pressTimer){clearTimeout(pressTimer);pressTimer=null}}
+['pointerdown'].forEach(ev=>$('cards').addEventListener(ev,onCardDown));
+['pointermove'].forEach(ev=>$('cards').addEventListener(ev,()=>{moved=true;clearPress()}));
+['pointerup','pointercancel','pointerleave'].forEach(ev=>$('cards').addEventListener(ev,()=>clearPress()));
+$('cards').addEventListener('click',e=>{const gm=e.target.closest('[data-cat-menu]');if(gm){categoryMenu(gm.dataset.catMenu);return}const gt=e.target.closest('[data-cat-toggle]');if(gt){const c=gt.dataset.catToggle;if(app.collapsed.has(c))app.collapsed.delete(c);else app.collapsed.add(c);savePrefs();renderLibrary();return}const cyc=e.target.closest('[data-cycle]');const item=e.target.closest('.item');if(!item)return;if(document.body.classList.contains('selecting')){toggleSelect(item.dataset.id);return}if(cyc){cycleStatus(cyc.dataset.cycle);return}openDetail(item.dataset.id)});
+
+function cycleStatus(id){const x=app.links.find(v=>v.id===id);if(!x)return;x.status=statuses[(statuses.indexOf(x.status)+1)%statuses.length];x.updatedAt=new Date().toISOString();save();renderLibrary();toast('Stato: '+x.status,'ok',1500)}
+
+/* ---------- selection mode ---------- */
+function enterSelect(){document.body.classList.add('selecting');updateSelBar()}
+function exitSelect(){document.body.classList.remove('selecting');app.selected.clear();renderLibrary()}
+function toggleSelect(id){if(app.selected.has(id))app.selected.delete(id);else app.selected.add(id);if(!app.selected.size){exitSelect();return}updateSelBar();renderLibrary()}
+function updateSelBar(){$('selCount').textContent=app.selected.size+' selezionati'}
+$('selClose').addEventListener('click',exitSelect);
+$('selectToggle').addEventListener('click',()=>{if(document.body.classList.contains('selecting'))exitSelect();else enterSelect()});
+$('collapseAll').addEventListener('click',()=>{const cats=[...new Set(app.links.map(l=>l.category||'Senza categoria'))];const anyOpen=cats.some(c=>!app.collapsed.has(c));if(anyOpen)cats.forEach(c=>app.collapsed.add(c));else app.collapsed.clear();savePrefs();renderLibrary()});
+const selIds=()=>[...app.selected];
+$('selStatus').addEventListener('click',async()=>{const s=await pickFromList('Imposta stato',statuses);if(!s)return;selIds().forEach(id=>{const x=app.links.find(v=>v.id===id);if(x){x.status=s;x.updatedAt=new Date().toISOString()}});save();toast(app.selected.size+' aggiornati','ok');exitSelect()});
+$('selCat').addEventListener('click',async()=>{const n=app.selected.size;const c=await pickCategory('Sposta in categoria');if(!c)return;selIds().forEach(id=>{const x=app.links.find(v=>v.id===id);if(x){x.category=c;x.updatedAt=new Date().toISOString()}});save();toast(n+' spostati in '+c,'ok');exitSelect()});
+$('selExport').addEventListener('click',()=>{const sel=app.links.filter(x=>app.selected.has(x.id));if(!sel.length)return;downloadBlob(JSON.stringify(sel,null,2),'application/json',`selezione-${stamp()}.json`);toast('Selezione esportata','ok');exitSelect()});
+$('selDelete').addEventListener('click',async()=>{const n=app.selected.size;const ok=await confirmAction('Eliminare '+n+' articoli?','L\'azione non è reversibile.','Elimina','danger-btn');if(!ok)return;app.links=app.links.filter(x=>!app.selected.has(x.id));save();toast(n+' eliminati','ok');exitSelect()});
+
+/* ---------- DETAIL sheet ---------- */
+function openSheet(el){$('scrim').classList.add('show');el.classList.add('open');el.setAttribute('aria-hidden','false');document.body.classList.add('locked')}
+function closeSheets(){if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document)}document.querySelectorAll('.sheet').forEach(s=>{s.classList.remove('open');s.setAttribute('aria-hidden','true')});$('scrim').classList.remove('show');document.body.classList.remove('locked');app.reading=null;const rp=$('readerPages');if(rp)rp.innerHTML=''}
+$('scrim').addEventListener('click',closeSheets);
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeSheets));
+function openDetail(id){const x=app.links.find(v=>v.id===id);if(!x)return;app.viewing=id;const doi=x.doi?`<a class="link" href="https://doi.org/${encodeURIComponent(normDoi(x.doi))}" target="_blank" rel="noopener">${esc(x.doi)}</a>`:'—';const pmid=x.pmid?`<a class="link" href="https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(x.pmid)}/" target="_blank" rel="noopener">${esc(x.pmid)}</a>`:'—';const flags=Object.entries(x.flags||{}).filter(([,v])=>v).map(([k])=>({guideline:'Guideline',practice:'Practice changing',fulltext:'Full text'}[k]));
+  $('detailBody').innerHTML=`<h2 class="d-title">${esc(x.title||'Senza titolo')}</h2>${x.authors?`<p class="d-authors">${esc(x.authors)}</p>`:''}
+  <div class="d-chips"><span class="chip cat">${esc(x.category)}</span><span class="chip st ${stClass(x.status)}">${esc(x.status)}</span><span class="chip">Priorità ${esc(x.priority)}</span>${flags.map(f=>`<span class="chip">${esc(f)}</span>`).join('')}</div>
+  <div class="d-meta"><div class="r"><span class="lab">Rivista</span><span>${esc(x.journal||'—')}</span></div><div class="r"><span class="lab">Anno</span><span>${esc(x.year||'—')}</span></div><div class="r"><span class="lab">DOI</span><span>${doi}</span></div><div class="r"><span class="lab">PMID</span><span>${pmid}</span></div></div>
+  ${x.abstract?`<div class="d-sec"><div class="lab">Abstract</div><div class="d-abstract clamp" id="absBox">${esc(x.abstract)}</div><button class="text-btn" id="absMore" style="padding-left:0">Mostra tutto</button></div>`:''}
+  ${x.takeaway?`<div class="d-sec"><div class="lab">Takeaway clinico</div><p style="line-height:1.5">${esc(x.takeaway)}</p></div>`:''}
+  ${x.notes?`<div class="d-sec"><div class="lab">Note</div><p style="line-height:1.5">${esc(x.notes)}</p></div>`:''}
+  ${(x.tags||[]).length?`<div class="d-sec"><div class="lab">Tag</div><div class="d-chips" style="margin:0">${x.tags.map(t=>`<span class="chip" data-tag="${esc(t)}">#${esc(t)}</span>`).join('')}</div></div>`:''}
+  <div class="d-actions"><a class="btn filled" href="${esc(x.url)}" target="_blank" rel="noopener">Apri ↗</a><button class="btn tonal" data-d="edit">Modifica</button><button class="btn outline" data-d="status">Cambia stato</button><button class="btn outline" data-d="cat">Sposta categoria</button><button class="btn outline" data-d="refresh">Aggiorna metadati</button><button class="btn outline" data-d="export">Esporta</button><button class="btn danger-btn" data-d="del">Elimina</button></div>`;
+  openSheet($('detailSheet'))}
+$('detailBody').addEventListener('click',async e=>{const tag=e.target.closest('[data-tag]');if(tag){closeSheets();app.filter='Tutti';$('searchInput').value=tag.dataset.tag;$('searchWrap').classList.add('q');screen('library');return}if(e.target.id==='absMore'){const b=$('absBox');b.classList.toggle('clamp');e.target.textContent=b.classList.contains('clamp')?'Mostra tutto':'Mostra meno';return}const a=e.target.closest('[data-d]');if(!a)return;const id=app.viewing,x=app.links.find(v=>v.id===id);if(!x)return;const act=a.dataset.d;
+  if(act==='edit'){closeSheets();openForm(id)}
+  else if(act==='del'){const ok=await confirmAction('Eliminare articolo?','"'+x.title+'" verrà rimosso.','Elimina','danger-btn');if(ok){app.links=app.links.filter(v=>v.id!==id);save();closeSheets();renderLibrary();renderHome();toast('Eliminato','ok')}}
+  else if(act==='status'){const s=await pickFromList('Imposta stato',statuses);if(s){x.status=s;x.updatedAt=new Date().toISOString();save();openDetail(id);renderLibrary()}}
+  else if(act==='cat'){const c=await pickCategory('Sposta in categoria');if(c){x.category=c;x.updatedAt=new Date().toISOString();save();openDetail(id);renderLibrary();toast('Spostato in '+c,'ok')}}
+  else if(act==='export'){downloadBlob(toBibtex([x]),'application/x-bibtex',`${(x.doi||x.title||'ref').replace(/[^\w.-]+/g,'_').slice(0,40)}.bib`);toast('BibTeX esportato','ok')}
+  else if(act==='refresh'){if(!x.doi)return toast('Nessun DOI da aggiornare','warn');a.disabled=true;a.innerHTML='<span class="spin"></span>';try{const d=await fetchCrossref(x.doi);Object.assign(x,{title:d.title||x.title,authors:d.authors||x.authors,journal:d.journal||x.journal,year:d.year||x.year,abstract:d.abstract||x.abstract,url:x.url||d.url});x.updatedAt=new Date().toISOString();save();openDetail(id);renderLibrary();toast('Metadati aggiornati','ok')}catch{toast('Aggiornamento non riuscito','err');a.disabled=false;a.textContent='Aggiorna metadati'}}});
+
+/* ---------- FORM sheet ---------- */
+function openForm(id){app.editing=id||null;fillSelects();const x=id?app.links.find(v=>v.id===id):null;$('formTitle').textContent=x?'Modifica':'Nuovo';
+  $('impId').value='';$('title').value=x?x.title:'';$('authors').value=x?x.authors:'';$('url').value=x?x.url:'';$('category').value=x?x.category:categories[0];$('status').value=x?x.status:statuses[0];$('priority').value=x?x.priority:priorities[1];$('year').value=x?x.year:'';$('journal').value=x?x.journal:'';$('pmid').value=x?x.pmid:'';$('doi').value=x?x.doi:'';$('abstract').value=x?x.abstract:'';$('tags').value=x?(x.tags||[]).join(', '):'';$('takeaway').value=x?x.takeaway:'';$('notes').value=x?x.notes:'';renderFlags(x?x.flags:{});openSheet($('formSheet'))}
+$('fab').addEventListener('click',()=>openForm());
+$('flags').addEventListener('click',e=>{const b=e.target.closest('.flag');if(b){const on=b.classList.toggle('on');b.setAttribute('aria-pressed',on)}});
+$('saveBtn').addEventListener('click',()=>$('form').requestSubmit());
+$('form').addEventListener('submit',async e=>{e.preventDefault();const now=new Date().toISOString();const prev=app.editing?app.links.find(x=>x.id===app.editing):null;const item=sanitize({id:app.editing||uid(),title:$('title').value,url:$('url').value,authors:$('authors').value,category:$('category').value,status:$('status').value,priority:$('priority').value,year:$('year').value,journal:$('journal').value,pmid:$('pmid').value,doi:$('doi').value,abstract:$('abstract').value,tags:$('tags').value.split(',').map(s=>s.trim()).filter(Boolean),takeaway:$('takeaway').value,notes:$('notes').value,flags:collectFlags(),createdAt:prev?prev.createdAt:now,updatedAt:now});
+  if(!item.title||!item.url){toast('Titolo e URL obbligatori','warn');return}const dup=findDuplicate(item,item.id);if(dup&&!app.editing){const go=await confirmAction('Possibile duplicato','Esiste già "'+dup.title+'" con lo stesso DOI/URL. Salvare comunque?','Salva comunque');if(!go)return}
+  if(app.editing){app.links=app.links.map(x=>x.id===app.editing?item:x);toast('Aggiornato','ok')}else{app.links.unshift(item);toast('Salvato','ok')}save();closeSheets();app.editing=null;screen('library')});
+
+/* ---------- metadata import (Crossref + PubMed) ---------- */
+function stripTags(s){return String(s||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()}
+async function fetchCrossref(doi){const clean=normDoi(doi);const r=await fetch('https://api.crossref.org/works/'+encodeURIComponent(clean));if(!r.ok)throw new Error();const m=(await r.json()).message||{};const authors=(m.author||[]).map(a=>[a.family,a.given?a.given.split(' ').map(s=>s[0]+'.').join(''):''].filter(Boolean).join(' ')).filter(Boolean);return{title:(m.title&&m.title[0])||'',journal:(m['container-title']&&m['container-title'][0])||'',year:(m.issued&&m.issued['date-parts']&&m.issued['date-parts'][0]&&m.issued['date-parts'][0][0])||'',doi:m.DOI||clean,url:m.URL||('https://doi.org/'+clean),authors:authors.join(', '),abstract:stripTags(m.abstract)}}
+async function fetchPubmed(pmid){const id=String(pmid).replace(/\D/g,'');const r=await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id='+id);if(!r.ok)throw new Error();const d=((await r.json()).result||{})[id];if(!d)throw new Error();const doiId=(d.articleids||[]).find(a=>a.idtype==='doi');return{title:d.title||'',journal:d.fulljournalname||d.source||'',year:(d.pubdate||'').slice(0,4),authors:(d.authors||[]).map(a=>a.name).join(', '),doi:doiId?doiId.value:'',pmid:id}}
+async function importInto(raw,btn){raw=(raw||'').trim();if(!raw)return toast('Inserisci un DOI o PMID','warn');const isPmid=/^\d{4,9}$/.test(raw.replace(/^pmid:?\s*/i,''));const old=btn?btn.innerHTML:'';if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span>'}try{const d=isPmid?await fetchPubmed(raw):await fetchCrossref(raw);if(d.title)$('title').value=d.title;if(d.authors)$('authors').value=d.authors;if(d.journal)$('journal').value=d.journal;if(d.year)$('year').value=d.year;if(d.doi)$('doi').value=d.doi;if(d.abstract)$('abstract').value=d.abstract;if(d.pmid)$('pmid').value=d.pmid;if(!$('url').value)$('url').value=d.url||(d.doi?'https://doi.org/'+normDoi(d.doi):'');toast('Metadati importati','ok')}catch{toast('Import non riuscito (sei offline?)','err')}finally{if(btn){btn.disabled=false;btn.innerHTML=old}}}
+$('impBtn').addEventListener('click',e=>importInto($('impId').value,e.currentTarget));
+$('newCatBtn').addEventListener('click',async()=>{const name=await promptDialog('Nuova categoria','Es. Emodinamica');if(!name)return;addCategory(name);fillSelects();$('category').value=name;toast('Categoria creata','ok')});
+
+/* ---------- backup ---------- */
+function downloadBlob(content,type,name){const blob=new Blob([content],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function stamp(){return new Date().toISOString().slice(0,10)}
+$('exportJsonBtn').addEventListener('click',()=>{if(!app.links.length)return toast('Niente da esportare','warn');downloadBlob(JSON.stringify(app.links,null,2),'application/json',`periop-vault-${stamp()}.json`);toast('Backup esportato','ok')});
+$('importJson').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{let data;try{data=JSON.parse(r.result);if(!Array.isArray(data))throw 0}catch{toast('JSON non valido','err');return}const incoming=data.map(sanitize).filter(x=>x.title||x.url||x.doi);if(!incoming.length)return toast('Nessun articolo valido','warn');let mode='replace';if(app.links.length){mode=await dialog({title:'Importa backup',message:`Il file contiene ${incoming.length} articoli. Ne hai già ${app.links.length}. Come procedo?`,actions:[{label:'Annulla',value:null,variant:'outline'},{label:'Sostituisci',value:'replace',variant:'tonal'},{label:'Unisci',value:'merge',variant:'filled'}]});if(!mode)return}if(mode==='merge'){const keys=new Set(app.links.map(dedupKey));let added=0;incoming.forEach(it=>{const k=dedupKey(it);if(k&&keys.has(k))return;keys.add(k);app.links.unshift(it);added++});toast(`Uniti ${added} · ${incoming.length-added} duplicati ignorati`,'ok',3400)}else{app.links=incoming;toast(`Sostituito (${incoming.length})`,'ok')}save();renderHome()};r.readAsText(f);e.target.value=''});
+function citeKey(x,used){const a=(x.authors||'').split(',')[0].trim().split(/\s+/)[0].replace(/[^A-Za-z]/g,'')||'ref';const w=(x.title||'').split(/\s+/)[0].replace(/[^A-Za-z]/g,'');let key=(a+(x.year||'')+w).toLowerCase()||'ref'+used.size,k=key,n=1;while(used.has(k))k=key+(++n);used.add(k);return k}
+function toBibtex(items){const used=new Set();return items.map(x=>{const k=citeKey(x,used);const f=[['title',x.title],['author',(x.authors||'').replace(/,\s*/g,' and ')],['journal',x.journal],['year',x.year],['doi',x.doi],['pmid',x.pmid],['url',x.url],['abstract',x.abstract],['note',x.takeaway]].filter(([,v])=>v).map(([n,v])=>`  ${n} = {${String(v).replace(/[{}]/g,'')}}`).join(',\n');return `@article{${k},\n${f}\n}`}).join('\n\n')+'\n'}
+function toRis(items){return items.map(x=>{const L=['TY  - JOUR'];(x.authors||'').split(',').map(s=>s.trim()).filter(Boolean).forEach(a=>L.push('AU  - '+a));if(x.title)L.push('TI  - '+x.title);if(x.journal)L.push('JO  - '+x.journal);if(x.year)L.push('PY  - '+x.year);if(x.doi)L.push('DO  - '+x.doi);if(x.url)L.push('UR  - '+x.url);if(x.abstract||x.takeaway)L.push('AB  - '+(x.abstract||x.takeaway));(x.tags||[]).forEach(t=>L.push('KW  - '+t));L.push('ER  - ');return L.join('\n')}).join('\n\n')+'\n'}
+$('exportBibBtn').addEventListener('click',()=>{if(!app.links.length)return toast('Niente da esportare','warn');downloadBlob(toBibtex(app.links),'application/x-bibtex',`periop-vault-${stamp()}.bib`);toast('BibTeX esportato','ok')});
+$('exportRisBtn').addEventListener('click',()=>{if(!app.links.length)return toast('Niente da esportare','warn');downloadBlob(toRis(app.links),'application/x-research-info-systems',`periop-vault-${stamp()}.ris`);toast('RIS esportato','ok')});
+$('seedBtn').addEventListener('click',async()=>{if(app.links.length){const ok=await confirmAction('Caricare esempi?','Verranno aggiunti articoli di esempio.','Aggiungi');if(!ok)return}app.links.unshift(sanitize({title:'ERAS Society Guidelines',url:'https://erassociety.org/guidelines/',category:'Linee guida',status:'Da leggere',priority:'Alta',year:'2024',journal:'ERAS Society',authors:'ERAS Society',tags:['ERAS','guideline'],takeaway:'Hub linee guida perioperatorie.',flags:{guideline:true,practice:true,fulltext:true}}));save();screen('library');toast('Esempio aggiunto','ok')});
+
+/* ---------- PDF → DOI ---------- */
+function setP(p,t){$('bar').style.width=p+'%';$('progressText').textContent=t}
+function cleanDoi(d){return d.replace(/^https?:\/\/doi\.org\//i,'').replace(/^doi\s*:?/i,'').replace(/[\s\]\[)>(<;,.]+$/g,'').trim()}
+function getDois(txt){const rx=/(?:https?:\/\/doi\.org\/)?10\.\d{4,9}\/[A-Z0-9._;()/:+-]+/ig;return [...new Set((txt.match(rx)||[]).map(cleanDoi).filter(x=>/^10\.\d{4,9}\//i.test(x)))]}
+async function extractPdf(){const file=$('pdfFile').files[0];if(!file)return toast('Seleziona un PDF','warn');try{if(!window.pdfjsLib)throw new Error();pdfjsLib.GlobalWorkerOptions.workerSrc='./assets/pdf.worker.min.js';setP(8,'Apro il PDF...');const bytes=await file.arrayBuffer();const doc=await pdfjsLib.getDocument({data:bytes}).promise;let full='';for(let i=1;i<=doc.numPages;i++){setP(10+Math.round(i/doc.numPages*75),`Pagina ${i}/${doc.numPages}...`);const page=await doc.getPage(i);const text=await page.getTextContent();full+='\n'+text.items.map(it=>it.str).join(' ')}setP(92,'Cerco i DOI...');app.pdfText=full;app.pdfName=file.name;app.dois=getDois(full+' '+file.name);renderDois();setP(100,app.dois.length?`${app.dois.length} DOI trovati`:'Nessun DOI trovato');app.pdfCtx={file,numPages:doc.numPages,dois:app.dois};await askStorePdf();}catch(err){console.error(err);setP(0,'Errore di lettura PDF');toast('Non riesco a leggere questo PDF','err',3600)}}
+async function askStorePdf(){const c=app.pdfCtx;if(!c)return toast('Prima leggi un PDF','warn');const exists=app.pdfs.find(p=>(p.origName||p.name)===c.file.name&&p.size===c.file.size);if(exists)return toast(`Questo PDF è già in Report come "${exists.name}"`,'',3200);const ok=await confirmAction('Salvare in Report?',`Vuoi aggiungere questo PDF all'archivio Report (verrà salvato come "${reportName(new Date().toISOString())}")? Se è un report che hai già, scegli Annulla per evitare doppioni.`,'Salva in Report');if(ok)await storePdf(c.file,c.numPages,c.dois)}
+function renderDois(){$('doiCount').textContent=app.dois.length;$('pdfMeta').textContent=app.pdfName?`${app.pdfName} · ${app.dois.length} DOI`:'Nessun PDF analizzato';$('copyAllBtn').style.display=app.dois.length?'inline-flex':'none';$('doiList').innerHTML=app.dois.length?app.dois.map((d,i)=>{const nd=normDoi(d);const m=doiCache[nd];const saved=app.links.some(x=>normDoi(x.doi)===nd);const sub=m?[m.authors,m.journal,m.year].filter(Boolean).join(' · '):'';return `<article class="doi" data-doirow="${esc(nd)}"><div class="hint" style="padding:0 0 4px">DOI ${i+1}</div><div class="doi-title" style="font-weight:700;line-height:1.3">${m&&m.title?esc(m.title):'<span class="muted">Recupero titolo…</span>'}</div><div class="doi-sub sub2" style="margin-top:3px">${esc(sub)}</div><div class="mono" style="word-break:break-all;font-size:.78rem;color:var(--on-variant);margin:5px 0 10px">${esc(d)}</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${saved?'<span class="chip s-read">In libreria</span>':''}<a class="btn tonal" href="https://doi.org/${encodeURIComponent(d)}" target="_blank" rel="noopener" style="min-height:42px;padding:9px 16px">Apri</a><button class="btn tonal" data-copy="${esc(d)}" style="min-height:42px;padding:9px 16px">Copia</button><button class="btn outline" data-add="${esc(d)}" style="min-height:42px;padding:9px 16px">${saved?'Aggiungi comunque':'Crea scheda'}</button></div></article>`}).join(''):'<div class="empty"><div class="big">📄</div><div>Nessun DOI. Carica un weekly report PDF.</div></div>';loadPdfDoiTitles()}
+let _pdfTitleToken=0;
+function updatePdfRow(nd,info){const row=[...$('doiList').querySelectorAll('[data-doirow]')].find(r=>r.dataset.doirow===nd);if(!row)return;const t=row.querySelector('.doi-title');if(t)t.innerHTML=info&&info.title?esc(info.title):(info?'<span class="muted">Senza titolo</span>':'<span class="muted">Titolo non disponibile (offline)</span>');const s=row.querySelector('.doi-sub');if(s&&info)s.textContent=[info.authors,info.journal,info.year].filter(Boolean).join(' · ')}
+async function loadPdfDoiTitles(){const token=++_pdfTitleToken;for(const d of app.dois){if(token!==_pdfTitleToken)return;let info=null;try{info=await getDoiMeta(d)}catch{info=null}if(token!==_pdfTitleToken)return;updatePdfRow(normDoi(d),info)}}
+$('extractBtn').addEventListener('click',extractPdf);
+$('savePdfBtn').addEventListener('click',askStorePdf);
+$('pdfFile').addEventListener('change',()=>{if($('pdfFile').files[0])extractPdf()});
+$('copyAllBtn').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(app.dois.map(d=>'https://doi.org/'+d).join('\n'));toast('DOI copiati','ok')}catch{toast('Copia non riuscita','err')}});
+$('doiList').addEventListener('click',async e=>{const c=e.target.closest('[data-copy]');const a=e.target.closest('[data-add]');if(c){try{await navigator.clipboard.writeText(c.dataset.copy);toast('DOI copiato','ok')}catch{toast('Copia non riuscita','err')}}if(a){openForm();$('doi').value=a.dataset.add;$('impId').value=a.dataset.add;$('url').value='https://doi.org/'+a.dataset.add;$('takeaway').value='DOI estratto dal weekly report PDF.';toast('Recupero i metadati...','');importInto(a.dataset.add,$('impBtn'))}});
+const drop=$('drop');['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf'){const dt=new DataTransfer();dt.items.add(f);$('pdfFile').files=dt.files;extractPdf()}else if(f)toast('Serve un file PDF','warn')});
+
+/* search & global */
+$('searchInput').addEventListener('input',()=>{$('searchWrap').classList.toggle('q',!!$('searchInput').value);renderLibrary()});
+$('searchClear').addEventListener('click',()=>{$('searchInput').value='';$('searchWrap').classList.remove('q');renderLibrary()});
+$('sortSel').addEventListener('change',e=>{app.sort=e.target.value;savePrefs();renderLibrary()});
+$('statusSeg').addEventListener('click',e=>{const b=e.target.closest('[data-status]');if(!b)return;app.filter=b.dataset.status;savePrefs();renderLibrary()});
+$('themeBtn').addEventListener('click',()=>{app.theme=app.theme==='dark'?'light':'dark';theme();savePrefs()});
+document.querySelectorAll('.navbar button').forEach(b=>b.addEventListener('click',()=>{if(document.body.classList.contains('selecting'))exitSelect();screen(b.dataset.go)}));
+window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.querySelector('.sheet.open'))closeSheets();else if(document.body.classList.contains('selecting'))exitSelect()}});
+
+/* boot */
+/* ---------- PDF archive (Report) ---------- */
+const PDFS='periop-pdfs',DOICACHE='periop-doicache';let _db=null,doiCache={};
+function loadDoiCache(){try{doiCache=JSON.parse(localStorage.getItem(DOICACHE)||'{}')||{}}catch{doiCache={}}}
+function saveDoiCache(){try{localStorage.setItem(DOICACHE,JSON.stringify(doiCache))}catch{}}
+async function getDoiMeta(doi){const nd=normDoi(doi);if(doiCache[nd])return doiCache[nd];const m=await fetchCrossref(doi);const info={title:m.title||'',authors:m.authors||'',journal:m.journal||'',year:m.year||''};doiCache[nd]=info;saveDoiCache();return info}
+function idb(){return new Promise((res,rej)=>{if(_db)return res(_db);let r;try{r=indexedDB.open('periop-vault',1)}catch(e){return rej(e)}r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('pdfs'))db.createObjectStore('pdfs')};r.onsuccess=()=>{_db=r.result;res(_db)};r.onerror=()=>rej(r.error)})}
+function idbPut(id,blob){return idb().then(db=>new Promise((res,rej)=>{const t=db.transaction('pdfs','readwrite');t.objectStore('pdfs').put(blob,id);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)}))}
+function idbGet(id){return idb().then(db=>new Promise((res,rej)=>{const t=db.transaction('pdfs','readonly');const q=t.objectStore('pdfs').get(id);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}))}
+function idbDel(id){return idb().then(db=>new Promise((res,rej)=>{const t=db.transaction('pdfs','readwrite');t.objectStore('pdfs').delete(id);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)}))}
+function loadPdfs(){try{app.pdfs=JSON.parse(localStorage.getItem(PDFS)||'[]')||[]}catch{app.pdfs=[]}let changed=false;app.pdfs.forEach(p=>{if(!p.origName){p.origName=p.name;changed=true}});app.pdfs.forEach(p=>{if(!/^Report \d{2}-\d{2}-\d{4}/.test(p.name||'')){p.name=reportName(p.addedAt);changed=true}if(typeof p.rating!=='number'){p.rating=0;changed=true}});if(changed)savePdfs()}
+function savePdfs(){try{localStorage.setItem(PDFS,JSON.stringify(app.pdfs))}catch{}}
+function reportName(date){const d=new Date(date||Date.now());const p=n=>String(n).padStart(2,'0');const base=`Report ${p(d.getDate())}-${p(d.getMonth()+1)}-${d.getFullYear()}`;let name=base,n=1;while(app.pdfs.some(x=>x.name===name))name=`${base} (${++n})`;return name}
+function fmtSize(b){b=+b||0;return b>=1048576?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB'}
+function fmtDate(iso){try{return new Date(iso).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'})}catch{return ''}}
+async function storePdf(file,numPages,dois){let rec=app.pdfs.find(p=>(p.origName||p.name)===file.name&&p.size===file.size);const id=rec?rec.id:uid();try{await idbPut(id,file)}catch(e){console.error(e);toast('PDF non salvato (spazio insufficiente?)','err');return}const addedAt=rec?rec.addedAt:new Date().toISOString();const meta={id,origName:file.name,name:rec?rec.name:reportName(addedAt),size:file.size,addedAt,numPages:numPages||0,dois:dois||[],rating:rec?(rec.rating||0):0};if(rec)Object.assign(rec,meta);else app.pdfs.unshift(meta);savePdfs();if($('report').classList.contains('active'))renderReports();toast('Salvato come "'+meta.name+'"','ok')}
+function ratColor(r){return['var(--outline-v)','#94a3b8','#38bdf8','#34d399','#fbbf24','#fb7185'][r]||'var(--outline-v)'}
+function reportItemHtml(p){const r=p.rating||0;const stars=[1,2,3,4,5].map(i=>`<button class="star ${i<=r?'on':''}" type="button" data-star="${i}" data-pdf="${p.id}" aria-label="${i} stelle">★</button>`).join('');return `<article class="item rep" data-pdf="${p.id}" style="border-left:5px solid ${ratColor(r)}"><div class="body"><h3>${esc(p.name)}</h3><div class="sub2">${fmtDate(p.addedAt)} · ${p.numPages||'?'} pag · ${fmtSize(p.size)} · ${(p.dois||[]).length} DOI</div><div class="stars">${stars}</div></div><button class="group-menu" type="button" data-pmenu="${p.id}" aria-label="Opzioni report">⋯</button></article>`}
+function renderReports(){const s=app.reportSort;const list=[...app.pdfs].sort((a,b)=>s==='rating'?((b.rating||0)-(a.rating||0)||(b.addedAt||'').localeCompare(a.addedAt||'')):s==='name'?(a.name||'').localeCompare(b.name||'','it'):(b.addedAt||'').localeCompare(a.addedAt||''));const sel=$('reportSort');if(sel)sel.value=s;$('reportList').innerHTML=list.length?list.map(reportItemHtml).join(''):`<div class="empty"><div class="big">🗞️</div><div>Nessun report salvato.</div><div class="hint" style="padding:0">Carica un PDF dal tab PDF: verrà salvato qui per rileggerlo.</div><button class="btn filled" data-go="pdf" style="margin-top:6px">Vai a PDF</button></div>`}
+function setRating(id,r){const p=app.pdfs.find(x=>x.id===id);if(!p)return;p.rating=(p.rating===r?0:r);savePdfs();renderReports()}
+async function pdfMenu(id){const p=app.pdfs.find(x=>x.id===id);if(!p)return;const act=await dialog({title:p.name,message:'',actions:[{label:'Rinomina',value:'rename',variant:'tonal'},{label:'Elimina',value:'delete',variant:'danger-btn'},{label:'Annulla',value:null,variant:'outline'}]});if(act==='rename'){const name=await promptDialog('Rinomina report','Nome',p.name);if(name){p.name=name;savePdfs();renderReports();if(app.reading===id)$('readerTitle').textContent=name;toast('Rinominato','ok')}}else if(act==='delete'){const ok=await confirmAction('Eliminare il PDF?',`"${p.name}" verrà rimosso dall'archivio.`,'Elimina','danger-btn');if(ok){try{await idbDel(id)}catch{}app.pdfs=app.pdfs.filter(x=>x.id!==id);savePdfs();renderReports();toast('PDF eliminato','ok')}}}
+$('reportSort').addEventListener('change',e=>{app.reportSort=e.target.value;savePrefs();renderReports()});
+$('reportList').addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(go){screen(go.dataset.go);return}const star=e.target.closest('[data-star]');if(star){setRating(star.dataset.pdf,+star.dataset.star);return}const menu=e.target.closest('[data-pmenu]');if(menu){pdfMenu(menu.dataset.pmenu);return}const it=e.target.closest('[data-pdf]');if(it)openReader(it.dataset.pdf)});
+function renderReaderDois(p){const dois=p.dois||[];if(!dois.length){$('readerDois').innerHTML='<div class="empty"><div class="big">🔗</div><div>Nessun DOI trovato in questo report.</div></div>';return}const meta=p.doiMeta||{};$('readerDois').innerHTML=`<div class="card-soft" style="margin:4px 0 14px"><h3>Articoli nel report (${dois.length})</h3><div class="cards">${dois.map(d=>{const nd=normDoi(d);const m=meta[nd]||doiCache[nd];const saved=app.links.some(x=>normDoi(x.doi)===nd);const sub=m?[m.authors,m.journal,m.year].filter(Boolean).join(' · '):'';return `<div class="doi" data-doirow="${esc(nd)}"><div class="doi-title" style="font-weight:700;line-height:1.3">${m&&m.title?esc(m.title):'<span class="muted">Recupero titolo…</span>'}</div><div class="doi-sub sub2" style="margin-top:3px">${esc(sub)}</div><div class="mono" style="word-break:break-all;font-size:.78rem;color:var(--on-variant);margin-top:5px">${esc(d)}</div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">${saved?'<span class="chip s-read">In libreria</span>':''}<a class="btn tonal" href="https://doi.org/${encodeURIComponent(d)}" target="_blank" rel="noopener" style="min-height:40px;padding:8px 14px">Apri</a><button class="btn outline" data-radd="${esc(d)}" style="min-height:40px;padding:8px 14px">${saved?'Aggiungi comunque':'Crea scheda'}</button></div></div>`}).join('')}</div></div>`}
+async function loadDoiTitles(id){const p=app.pdfs.find(x=>x.id===id);if(!p)return;const dois=p.dois||[];p.doiMeta=p.doiMeta||{};let changed=false;for(const d of dois){if(app.reading!==id)return;const nd=normDoi(d);if(p.doiMeta[nd])continue;let info=null;try{info=await getDoiMeta(d)}catch{info=null}if(app.reading!==id)return;const row=[...$('readerDois').querySelectorAll('[data-doirow]')].find(r=>r.dataset.doirow===nd);if(info){p.doiMeta[nd]=info;changed=true;if(row){const t=row.querySelector('.doi-title');if(t)t.innerHTML=info.title?esc(info.title):'<span class="muted">Senza titolo</span>';const s=row.querySelector('.doi-sub');if(s)s.textContent=[info.authors,info.journal,info.year].filter(Boolean).join(' · ')}}else if(row){const t=row.querySelector('.doi-title');if(t)t.innerHTML='<span class="muted">Titolo non disponibile (offline)</span>'}}if(changed)savePdfs()}
+function setReaderView(v){document.querySelectorAll('#readerSeg button').forEach(b=>b.classList.toggle('on',b.dataset.rv===v));$('readerPages').style.display=v==='dois'?'none':'';$('readerDois').style.display=v==='dois'?'':'none';const sc=$('readerScroll');if(sc)sc.scrollTop=0}
+$('readerSeg').addEventListener('click',e=>{const b=e.target.closest('[data-rv]');if(b)setReaderView(b.dataset.rv)});
+async function openReader(id){const p=app.pdfs.find(x=>x.id===id);if(!p)return;app.reading=id;$('readerTitle').textContent=p.name;renderReaderDois(p);document.querySelector('#readerSeg [data-rv="dois"]').textContent=`🔗 DOI (${(p.dois||[]).length})`;setReaderView('pdf');loadDoiTitles(id);$('readerPages').innerHTML='<div class="hint" style="padding:14px 0">Carico il PDF…</div>';openSheet($('readerSheet'));let blob;try{blob=await idbGet(id)}catch{blob=null}if(app.reading!==id)return;if(!blob){$('readerPages').innerHTML='<div class="empty"><div class="big">⚠️</div><div>File non disponibile.</div></div>';return}try{pdfjsLib.GlobalWorkerOptions.workerSrc='./assets/pdf.worker.min.js';const buf=await blob.arrayBuffer();const doc=await pdfjsLib.getDocument({data:buf}).promise;if(app.reading!==id)return;$('readerPages').innerHTML='';const cw=$('readerPages').clientWidth||document.documentElement.clientWidth-36;const dpr=Math.min(window.devicePixelRatio||1,2);for(let i=1;i<=doc.numPages;i++){if(app.reading!==id)return;const page=await doc.getPage(i);const v0=page.getViewport({scale:1});const vp=page.getViewport({scale:(cw*dpr)/v0.width});const c=document.createElement('canvas');c.className='pdfpage';c.width=vp.width;c.height=vp.height;$('readerPages').appendChild(c);await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise}}catch(e){console.error(e);if(app.reading===id)$('readerPages').innerHTML='<div class="empty"><div class="big">⚠️</div><div>Impossibile aprire il PDF.</div></div>'}}
+$('readerDois').addEventListener('click',e=>{const a=e.target.closest('[data-radd]');if(!a)return;const d=a.dataset.radd;closeSheets();openForm();$('doi').value=d;$('impId').value=d;$('url').value='https://doi.org/'+d;$('takeaway').value='DOI dal report PDF.';toast('Recupero i metadati…','');importInto(d,$('impBtn'))});
+$('readerDel').addEventListener('click',async()=>{const id=app.reading;const p=app.pdfs.find(x=>x.id===id);if(!p)return;const ok=await confirmAction('Eliminare il PDF?',`"${p.name}" verrà rimosso dall'archivio.`,'Elimina','danger-btn');if(!ok)return;try{await idbDel(id)}catch{}app.pdfs=app.pdfs.filter(x=>x.id!==id);savePdfs();closeSheets();renderReports();toast('PDF eliminato','ok')});
+
+/* ---------- PDF backup (ZIP, store method) ---------- */
+const _crcT=(()=>{let t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xedb88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u8){let c=0xffffffff;for(let i=0;i<u8.length;i++)c=_crcT[(c^u8[i])&0xff]^(c>>>8);return (c^0xffffffff)>>>0}
+function _wU32(a,o,v){a[o]=v&255;a[o+1]=(v>>>8)&255;a[o+2]=(v>>>16)&255;a[o+3]=(v>>>24)&255}
+function _wU16(a,o,v){a[o]=v&255;a[o+1]=(v>>>8)&255}
+function buildZip(entries){const enc=new TextEncoder();const parts=[];const centrals=[];let offset=0;for(const e of entries){const name=enc.encode(e.name);const data=e.data;const crc=crc32(data);const lh=new Uint8Array(30+name.length);_wU32(lh,0,0x04034b50);_wU16(lh,4,20);_wU32(lh,14,crc);_wU32(lh,18,data.length);_wU32(lh,22,data.length);_wU16(lh,26,name.length);lh.set(name,30);parts.push(lh,data);const ch=new Uint8Array(46+name.length);_wU32(ch,0,0x02014b50);_wU16(ch,4,20);_wU16(ch,6,20);_wU32(ch,16,crc);_wU32(ch,20,data.length);_wU32(ch,24,data.length);_wU16(ch,28,name.length);_wU32(ch,42,offset);ch.set(name,46);centrals.push(ch);offset+=lh.length+data.length}const cdSize=centrals.reduce((s,c)=>s+c.length,0);const eocd=new Uint8Array(22);_wU32(eocd,0,0x06054b50);_wU16(eocd,8,entries.length);_wU16(eocd,10,entries.length);_wU32(eocd,12,cdSize);_wU32(eocd,16,offset);return new Blob([...parts,...centrals,eocd],{type:'application/zip'})}
+async function readZip(file){const buf=new Uint8Array(await file.arrayBuffer());const dv=new DataView(buf.buffer);const out={};let i=0;const dec=new TextDecoder();while(i+4<=buf.length&&dv.getUint32(i,true)===0x04034b50){const method=dv.getUint16(i+8,true);const compSize=dv.getUint32(i+18,true);const nameLen=dv.getUint16(i+26,true);const extraLen=dv.getUint16(i+28,true);const name=dec.decode(buf.subarray(i+30,i+30+nameLen));const ds=i+30+nameLen+extraLen;const data=buf.subarray(ds,ds+compSize);if(method===0)out[name]=data.slice();else if(method===8){try{out[name]=new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer())}catch{out[name]=null}}i=ds+compSize}return out}
+const _enc=s=>new TextEncoder().encode(s),_dec=u=>new TextDecoder().decode(u);
+async function buildBackupZip(){const entries=[];entries.push({name:'articles.json',data:_enc(JSON.stringify(app.links))});entries.push({name:'categories.json',data:_enc(JSON.stringify(app.cats))});const meta=[];for(const p of app.pdfs){const blob=await idbGet(p.id);const file='pdfs/'+p.id+'.pdf';if(blob){entries.push({name:file,data:new Uint8Array(await blob.arrayBuffer())});meta.push({id:p.id,name:p.name,origName:p.origName,size:p.size,addedAt:p.addedAt,numPages:p.numPages,dois:p.dois,rating:p.rating||0,file})}else meta.push({id:p.id,name:p.name,origName:p.origName,size:p.size,addedAt:p.addedAt,numPages:p.numPages,dois:p.dois,rating:p.rating||0})}entries.push({name:'pdfs.json',data:_enc(JSON.stringify(meta))});entries.push({name:'periop-backup.json',data:_enc(JSON.stringify({app:'Periop Link Vault',version:1,exportedAt:new Date().toISOString(),articles:app.links.length,pdfs:meta.length}))});return{blob:buildZip(entries),name:`periop-backup-${stamp()}.zip`,a:app.links.length,p:meta.length}}
+async function exportAll(){toast('Preparo il backup…','');try{const b=await buildBackupZip();downloadBlob(b.blob,'application/zip',b.name);toast(`Backup esportato (${b.a} articoli, ${b.p} PDF)`,'ok',3200)}catch(e){console.error(e);toast('Backup non riuscito','err')}}
+async function shareAll(){toast('Preparo il backup…','');try{const b=await buildBackupZip();const file=new File([b.blob],b.name,{type:'application/zip'});if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Backup Periop Vault',text:`Backup: ${b.a} articoli, ${b.p} PDF`})}else{toast('Condivisione non disponibile: scarico il file','warn');downloadBlob(b.blob,'application/zip',b.name)}}catch(e){if(e&&e.name==='AbortError')return;console.error(e);toast('Condivisione non riuscita','err')}}
+async function importAll(file){toast('Importo il backup…','');let entries;try{entries=await readZip(file)}catch{return toast('ZIP non valido','err')}let articles=null,cats=null,pmeta=null;try{if(entries['articles.json'])articles=JSON.parse(_dec(entries['articles.json']))}catch{}try{if(entries['categories.json'])cats=JSON.parse(_dec(entries['categories.json']))}catch{}try{if(entries['pdfs.json'])pmeta=JSON.parse(_dec(entries['pdfs.json']))}catch{}if(!Array.isArray(articles)&&!Array.isArray(pmeta))return toast('Backup non riconosciuto','err');
+  if(Array.isArray(articles)){const incoming=articles.map(sanitize).filter(x=>x.title||x.url||x.doi);let mode='replace';if(app.links.length){mode=await dialog({title:'Ripristina backup',message:`Il backup ha ${incoming.length} articoli; ne hai già ${app.links.length}. Come procedo?`,actions:[{label:'Annulla',value:null,variant:'outline'},{label:'Sostituisci',value:'replace',variant:'tonal'},{label:'Unisci',value:'merge',variant:'filled'}]});if(!mode)return}if(mode==='replace')app.links=incoming;else{const keys=new Set(app.links.map(dedupKey));incoming.forEach(it=>{const k=dedupKey(it);if(k&&keys.has(k))return;keys.add(k);app.links.unshift(it)})}save()}
+  if(Array.isArray(cats)){cats.forEach(c=>{if(typeof c==='string'&&c.trim()&&!app.cats.includes(c)&&!defaultCategories.includes(c))app.cats.push(c)});saveCats()}
+  let pAdded=0;if(Array.isArray(pmeta)){for(const m of pmeta){const data=entries[m.file||('pdfs/'+m.id+'.pdf')];if(data){try{await idbPut(m.id,new Blob([data],{type:'application/pdf'}))}catch{}}const meta={id:m.id,name:m.name,origName:m.origName||m.name,size:m.size,addedAt:m.addedAt,numPages:m.numPages,dois:m.dois||[],rating:m.rating||0};const rec=app.pdfs.find(p=>p.id===m.id);if(rec)Object.assign(rec,meta);else{app.pdfs.unshift(meta);pAdded++}}savePdfs()}
+  rebuildCats();fillSelects();renderHome();renderReports();toast(`Ripristinati ${app.links.length} articoli e ${pAdded} PDF`,'ok',3400)}
+$('exportAllBtn').addEventListener('click',exportAll);
+$('shareAllBtn').addEventListener('click',shareAll);
+$('importAllZip').addEventListener('change',e=>{const f=e.target.files[0];if(f)importAll(f);e.target.value=''});
+$('readerDl').addEventListener('click',async()=>{const p=app.pdfs.find(x=>x.id===app.reading);if(!p)return;let blob;try{blob=await idbGet(p.id)}catch{blob=null}if(!blob)return toast('File non disponibile','err');downloadBlob(blob,'application/pdf',/\.pdf$/i.test(p.name)?p.name:p.name+'.pdf');toast('Download avviato','ok')});
+function readerFsToggle(){const el=$('readerSheet');const fs=document.fullscreenElement||document.webkitFullscreenElement;if(!fs){const rq=el.requestFullscreen||el.webkitRequestFullscreen;if(rq)try{const r=rq.call(el);if(r&&r.catch)r.catch(()=>{})}catch{}}else{const ex=document.exitFullscreen||document.webkitExitFullscreen;if(ex)ex.call(document)}}
+$('readerFs').addEventListener('click',readerFsToggle);
+function readerFsToggle(){const el=$('readerSheet');const fs=document.fullscreenElement||document.webkitFullscreenElement;if(!fs){const rq=el.requestFullscreen||el.webkitRequestFullscreen;if(rq)try{const r=rq.call(el);if(r&&r.catch)r.catch(()=>{})}catch{}}else{const ex=document.exitFullscreen||document.webkitExitFullscreen;if(ex)ex.call(document)}}
+$('readerFs').addEventListener('click',readerFsToggle);
+
+loadPrefs();loadCats();loadPdfs();loadDoiCache();load();rebuildCats();fillSelects();renderFlags({});theme();renderHome();renderDois();setP(0,'In attesa di un PDF');observeTitle('home');
+if(navigator.storage&&navigator.storage.persist){navigator.storage.persisted?navigator.storage.persisted().then(p=>{if(!p)navigator.storage.persist().catch(()=>{})}).catch(()=>{}):navigator.storage.persist().catch(()=>{})}
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
+</script>
+</body>
+</html>
