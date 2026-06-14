@@ -82,9 +82,14 @@
     .text-btn{color:var(--primary);font-weight:700;padding:8px 12px;border-radius:999px}.text-btn:active{background:color-mix(in srgb,var(--primary) 12%,transparent)}
 
     /* ---------- cards ---------- */
-    .group{margin-bottom:18px}
-    .group-h{display:flex;align-items:center;gap:10px;padding:4px 4px 10px;color:var(--on-variant);font-size:.82rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
-    .group-h .n{margin-left:auto;background:var(--s-2);border-radius:999px;padding:2px 10px;color:var(--on-variant)}
+    .group{margin-bottom:14px}
+    .group-h{display:flex;align-items:center;gap:10px;width:100%;padding:10px 6px;color:var(--on-variant);font-size:.82rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;text-align:left;border-radius:12px}
+    .group-h:active{background:var(--s-1)}
+    .group-h .chev{font-size:.8rem;transition:transform .2s;flex:0 0 auto}
+    .group.collapsed .group-h .chev{transform:rotate(-90deg)}
+    .group-h .gname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .group-h .n{margin-left:auto;background:var(--s-2);border-radius:999px;padding:2px 10px;color:var(--on-variant);flex:0 0 auto}
+    .group.collapsed .glist{display:none}
     .cards{display:grid;gap:10px}
     .item{position:relative;display:flex;gap:12px;align-items:flex-start;background:var(--s-low);border:1px solid var(--outline-v);border-radius:20px;padding:14px 16px;transition:transform .1s,background .15s}
     .item:active{transform:scale(.985);background:var(--s-1)}
@@ -208,7 +213,7 @@
       <h1 class="large-title">Libreria</h1>
       <div class="searchbar" id="searchWrap"><span aria-hidden="true">🔎</span><input id="searchInput" aria-label="Cerca" placeholder="Cerca titolo, autore, DOI, tag" /><button class="x" id="searchClear" aria-label="Pulisci">✕</button></div>
       <div class="segmented" id="statusSeg"></div>
-      <div class="lib-toolbar"><select id="sortSel" aria-label="Ordina"><option value="recent">Recenti</option><option value="year">Anno ↓</option><option value="title">Titolo</option><option value="priority">Priorità</option></select><button class="text-btn" id="selectToggle">Seleziona</button><span class="count" id="resultCount"></span></div>
+      <div class="lib-toolbar"><select id="sortSel" aria-label="Ordina"><option value="recent">Recenti</option><option value="year">Anno ↓</option><option value="title">Titolo</option><option value="priority">Priorità</option></select><button class="text-btn" id="collapseAll">Comprimi</button><button class="text-btn" id="selectToggle">Seleziona</button><span class="count" id="resultCount"></span></div>
       <div class="cards" id="cards"></div>
       <div id="emptyArchive" style="display:none"></div>
     </section>
@@ -269,7 +274,7 @@
       <div class="field"><label for="title">Titolo *</label><input id="title" required /></div>
       <div class="field"><label for="authors">Autori</label><input id="authors" placeholder="Cognome N., ..." /></div>
       <div class="field"><label for="url">URL *</label><input id="url" type="url" required /></div>
-      <div class="grid2"><div class="field"><label for="category">Categoria</label><select id="category"></select></div><div class="field"><label for="status">Stato</label><select id="status"></select></div></div>
+      <div class="grid2"><div class="field"><label for="category">Categoria</label><div style="display:flex;gap:8px"><select id="category"></select><button class="btn tonal" type="button" id="newCatBtn" title="Nuova categoria" aria-label="Nuova categoria" style="flex:0 0 auto;min-height:52px;padding:0 18px;font-size:1.2rem">＋</button></div></div><div class="field"><label for="status">Stato</label><select id="status"></select></div></div>
       <div class="grid2"><div class="field"><label for="priority">Priorità</label><select id="priority"></select></div><div class="field"><label for="year">Anno</label><input id="year" type="number" /></div></div>
       <div class="grid2"><div class="field"><label for="journal">Rivista</label><input id="journal" /></div><div class="field"><label for="pmid">PMID</label><input id="pmid" /></div></div>
       <div class="field"><label for="doi">DOI</label><input id="doi" /></div>
@@ -286,18 +291,23 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <dialog id="dlg"></dialog>
 <script>
-const STORE='periop-v9-netlify',PREFS='periop-prefs';
-const categories=['Anestesia generale','Vie aeree','Terapia intensiva','Analgesia regionale','ERAS','Monitoraggio','Farmacologia','Ecografia/POCUS','Linee guida','Spunti ricerca','Cambio pratica clinica','Importante'];
+const STORE='periop-v9-netlify',PREFS='periop-prefs',CATS='periop-cats';
+const defaultCategories=['Anestesia generale','Vie aeree','Terapia intensiva','Analgesia regionale','ERAS','Monitoraggio','Farmacologia','Ecografia/POCUS','Linee guida','Spunti ricerca','Cambio pratica clinica','Importante'];
+let categories=[...defaultCategories];
 const statuses=['Da leggere','Letto','Da rivedere'],priorities=['Alta','Media','Bassa'];
-let app={links:[],editing:null,theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light',dois:[],pdfName:'',pdfText:'',sort:'recent',filter:'Tutti',selected:new Set(),viewing:null};
+let app={links:[],editing:null,theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light',dois:[],pdfName:'',pdfText:'',sort:'recent',filter:'Tutti',selected:new Set(),viewing:null,cats:[],collapsed:new Set()};
 const $=id=>document.getElementById(id);
 const screenTitles={home:'Home',library:'Libreria',pdf:'PDF → DOI',backup:'Backup'};
 
 /* storage */
 function save(){localStorage.setItem(STORE,JSON.stringify(app.links))}
 function load(){try{app.links=(JSON.parse(localStorage.getItem(STORE)||'[]')||[]).map(sanitize)}catch{app.links=[]}}
-function savePrefs(){try{localStorage.setItem(PREFS,JSON.stringify({theme:app.theme,sort:app.sort,filter:app.filter}))}catch{}}
-function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PREFS)||'{}');if(p.theme)app.theme=p.theme;if(p.sort)app.sort=p.sort;if(p.filter)app.filter=p.filter;}catch{}}
+function savePrefs(){try{localStorage.setItem(PREFS,JSON.stringify({theme:app.theme,sort:app.sort,filter:app.filter,collapsed:[...app.collapsed]}))}catch{}}
+function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PREFS)||'{}');if(p.theme)app.theme=p.theme;if(p.sort)app.sort=p.sort;if(p.filter)app.filter=p.filter;if(Array.isArray(p.collapsed))app.collapsed=new Set(p.collapsed);}catch{}}
+function rebuildCats(){categories=[...new Set([...defaultCategories,...app.cats,...app.links.map(l=>l.category).filter(Boolean)])]}
+function loadCats(){try{const c=JSON.parse(localStorage.getItem(CATS)||'[]');app.cats=Array.isArray(c)?c.filter(x=>typeof x==='string'&&x.trim()):[]}catch{app.cats=[]}rebuildCats()}
+function saveCats(){try{localStorage.setItem(CATS,JSON.stringify(app.cats))}catch{}}
+function addCategory(name){name=(name||'').trim();if(!name)return null;if(!app.cats.includes(name)&&!defaultCategories.includes(name)){app.cats.push(name);saveCats()}rebuildCats();return name}
 function esc(s=''){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
 
 /* data hygiene */
@@ -323,9 +333,11 @@ function toast(msg,type='',ms=2600){const t=document.createElement('div');t.clas
 function dialog({title,message,actions}){return new Promise(res=>{const d=$('dlg');d.innerHTML=`<div class="dlg"><h3>${esc(title)}</h3>${message?`<p>${esc(message)}</p>`:''}<div class="row">${actions.map((a,i)=>`<button class="btn ${a.variant||'tonal'}" data-i="${i}" style="min-height:44px;padding:11px 18px">${esc(a.label)}</button>`).join('')}</div></div>`;const click=e=>{const b=e.target.closest('[data-i]');if(!b)return;done(actions[+b.dataset.i].value)};const cancel=()=>done(null);function done(v){d.removeEventListener('click',click);d.removeEventListener('cancel',cancel);d.close();res(v)}d.addEventListener('click',click);d.addEventListener('cancel',cancel);d.showModal()})}
 const confirmAction=(t,m,ok='Conferma',variant='filled')=>dialog({title:t,message:m,actions:[{label:'Annulla',value:false,variant:'outline'},{label:ok,value:true,variant}]});
 function pickFromList(title,items){return new Promise(res=>{const d=$('dlg');d.innerHTML=`<div class="dlg"><h3>${esc(title)}</h3><div class="list">${items.map((it,i)=>`<button data-i="${i}">${esc(it)}</button>`).join('')}</div></div>`;const click=e=>{const b=e.target.closest('[data-i]');if(!b)return;done(items[+b.dataset.i])};const cancel=()=>done(null);function done(v){d.removeEventListener('click',click);d.removeEventListener('cancel',cancel);d.close();res(v)}d.addEventListener('click',click);d.addEventListener('cancel',cancel);d.showModal()})}
+function promptDialog(title,placeholder,value=''){return new Promise(res=>{const d=$('dlg');d.innerHTML=`<div class="dlg"><h3>${esc(title)}</h3><input id="dlgInput" placeholder="${esc(placeholder||'')}" value="${esc(value)}" style="margin-top:6px" /><div class="row"><button class="btn outline" data-v="0" style="min-height:44px;padding:11px 18px">Annulla</button><button class="btn filled" data-v="1" style="min-height:44px;padding:11px 18px">OK</button></div></div>`;const inp=d.querySelector('#dlgInput');const click=e=>{const b=e.target.closest('[data-v]');if(!b)return;done(b.dataset.v==='1'?inp.value:null)};const cancel=()=>done(null);const key=e=>{if(e.key==='Enter'){e.preventDefault();done(inp.value)}};function done(v){d.removeEventListener('click',click);d.removeEventListener('cancel',cancel);inp.removeEventListener('keydown',key);d.close();res(v&&v.trim()?v.trim():null)}d.addEventListener('click',click);d.addEventListener('cancel',cancel);inp.addEventListener('keydown',key);d.showModal();setTimeout(()=>inp.focus(),60)})}
+async function pickCategory(title='Categoria'){const NEW='➕ Nuova categoria…';const c=await pickFromList(title,[...categories,NEW]);if(c===null)return null;if(c===NEW){const name=await promptDialog('Nuova categoria','Es. Emodinamica');return name?addCategory(name):null}return c}
 
 /* form helpers */
-function fillSelects(){$('category').innerHTML=categories.map(v=>`<option>${v}</option>`).join('');$('status').innerHTML=statuses.map(v=>`<option>${v}</option>`).join('');$('priority').innerHTML=priorities.map(v=>`<option>${v}</option>`).join('')}
+function fillSelects(){rebuildCats();$('category').innerHTML=categories.map(v=>`<option>${esc(v)}</option>`).join('');$('status').innerHTML=statuses.map(v=>`<option>${v}</option>`).join('');$('priority').innerHTML=priorities.map(v=>`<option>${v}</option>`).join('')}
 function renderFlags(f={}){$('flags').innerHTML=['guideline','practice','fulltext'].map(k=>`<button type="button" class="flag ${f[k]?'on':''}" data-flag="${k}" aria-pressed="${!!f[k]}">${k==='guideline'?'Guideline':k==='practice'?'Practice changing':'Full text'}</button>`).join('')}
 function collectFlags(){const g=k=>{const el=document.querySelector('[data-flag="'+k+'"]');return!!(el&&el.classList.contains('on'))};return{guideline:g('guideline'),practice:g('practice'),fulltext:g('fulltext')}}
 
@@ -363,7 +375,7 @@ function itemHtml(x){const sel=app.selected.has(x.id)?'sel':'';const sub=[x.auth
 function renderLibrary(){renderStatusSeg();$('sortSel').value=app.sort;const q=$('searchInput').value.trim().toLowerCase();let items=app.links.filter(x=>!q||[x.title,x.authors,x.doi,x.pmid,(x.tags||[]).join(' '),x.takeaway,x.notes,x.category,x.journal,x.abstract].join(' ').toLowerCase().includes(q));if(app.filter!=='Tutti')items=items.filter(x=>x.status===app.filter);$('resultCount').textContent=app.links.length?`${items.length}/${app.links.length}`:'';
   if(!items.length){$('cards').innerHTML='';$('emptyArchive').style.display='block';$('emptyArchive').innerHTML=app.links.length?`<div class="empty"><div class="big">🔍</div><div>Nessun risultato.</div></div>`:`<div class="empty"><div class="big">📚</div><div>Libreria vuota.</div><button class="btn filled" data-act="new" style="margin-top:6px">Aggiungi il primo</button></div>`;return}
   $('emptyArchive').style.display='none';items=sortItems(items);const grouped=new Map();items.forEach(x=>{const k=x.category||'Senza categoria';if(!grouped.has(k))grouped.set(k,[]);grouped.get(k).push(x)});const ordered=[...categories.filter(c=>grouped.has(c)),...[...grouped.keys()].filter(c=>!categories.includes(c))];
-  $('cards').innerHTML=ordered.map(cat=>`<section class="group"><div class="group-h">${esc(cat)}<span class="n">${grouped.get(cat).length}</span></div><div class="cards">${grouped.get(cat).map(itemHtml).join('')}</div></section>`).join('')}
+  $('cards').innerHTML=ordered.map(cat=>{const col=!q&&app.collapsed.has(cat);return `<section class="group ${col?'collapsed':''}"><button class="group-h" type="button" data-cat-toggle="${esc(cat)}" aria-expanded="${col?'false':'true'}"><span class="chev">▾</span><span class="gname">${esc(cat)}</span><span class="n">${grouped.get(cat).length}</span></button><div class="cards glist">${grouped.get(cat).map(itemHtml).join('')}</div></section>`}).join('');$('collapseAll').textContent=ordered.some(c=>!app.collapsed.has(c))?'Comprimi':'Espandi'}
 $('emptyArchive').addEventListener('click',e=>{if(e.target.closest('[data-act="new"]'))openForm()});
 
 /* card interactions: tap=detail, tap status chip=cycle, long-press=select */
@@ -373,7 +385,7 @@ function clearPress(){if(pressTimer){clearTimeout(pressTimer);pressTimer=null}}
 ['pointerdown'].forEach(ev=>$('cards').addEventListener(ev,onCardDown));
 ['pointermove'].forEach(ev=>$('cards').addEventListener(ev,()=>{moved=true;clearPress()}));
 ['pointerup','pointercancel','pointerleave'].forEach(ev=>$('cards').addEventListener(ev,()=>clearPress()));
-$('cards').addEventListener('click',e=>{const cyc=e.target.closest('[data-cycle]');const item=e.target.closest('.item');if(!item)return;if(document.body.classList.contains('selecting')){toggleSelect(item.dataset.id);return}if(cyc){cycleStatus(cyc.dataset.cycle);return}openDetail(item.dataset.id)});
+$('cards').addEventListener('click',e=>{const gt=e.target.closest('[data-cat-toggle]');if(gt){const c=gt.dataset.catToggle;if(app.collapsed.has(c))app.collapsed.delete(c);else app.collapsed.add(c);savePrefs();renderLibrary();return}const cyc=e.target.closest('[data-cycle]');const item=e.target.closest('.item');if(!item)return;if(document.body.classList.contains('selecting')){toggleSelect(item.dataset.id);return}if(cyc){cycleStatus(cyc.dataset.cycle);return}openDetail(item.dataset.id)});
 
 function cycleStatus(id){const x=app.links.find(v=>v.id===id);if(!x)return;x.status=statuses[(statuses.indexOf(x.status)+1)%statuses.length];x.updatedAt=new Date().toISOString();save();renderLibrary();toast('Stato: '+x.status,'ok',1500)}
 
@@ -384,9 +396,10 @@ function toggleSelect(id){if(app.selected.has(id))app.selected.delete(id);else a
 function updateSelBar(){$('selCount').textContent=app.selected.size+' selezionati'}
 $('selClose').addEventListener('click',exitSelect);
 $('selectToggle').addEventListener('click',()=>{if(document.body.classList.contains('selecting'))exitSelect();else enterSelect()});
+$('collapseAll').addEventListener('click',()=>{const cats=[...new Set(app.links.map(l=>l.category||'Senza categoria'))];const anyOpen=cats.some(c=>!app.collapsed.has(c));if(anyOpen)cats.forEach(c=>app.collapsed.add(c));else app.collapsed.clear();savePrefs();renderLibrary()});
 const selIds=()=>[...app.selected];
 $('selStatus').addEventListener('click',async()=>{const s=await pickFromList('Imposta stato',statuses);if(!s)return;selIds().forEach(id=>{const x=app.links.find(v=>v.id===id);if(x){x.status=s;x.updatedAt=new Date().toISOString()}});save();toast(app.selected.size+' aggiornati','ok');exitSelect()});
-$('selCat').addEventListener('click',async()=>{const c=await pickFromList('Sposta in categoria',categories);if(!c)return;selIds().forEach(id=>{const x=app.links.find(v=>v.id===id);if(x){x.category=c;x.updatedAt=new Date().toISOString()}});save();toast(app.selected.size+' spostati','ok');exitSelect()});
+$('selCat').addEventListener('click',async()=>{const n=app.selected.size;const c=await pickCategory('Sposta in categoria');if(!c)return;selIds().forEach(id=>{const x=app.links.find(v=>v.id===id);if(x){x.category=c;x.updatedAt=new Date().toISOString()}});save();toast(n+' spostati in '+c,'ok');exitSelect()});
 $('selExport').addEventListener('click',()=>{const sel=app.links.filter(x=>app.selected.has(x.id));if(!sel.length)return;downloadBlob(JSON.stringify(sel,null,2),'application/json',`selezione-${stamp()}.json`);toast('Selezione esportata','ok');exitSelect()});
 $('selDelete').addEventListener('click',async()=>{const n=app.selected.size;const ok=await confirmAction('Eliminare '+n+' articoli?','L\'azione non è reversibile.','Elimina','danger-btn');if(!ok)return;app.links=app.links.filter(x=>!app.selected.has(x.id));save();toast(n+' eliminati','ok');exitSelect()});
 
@@ -403,12 +416,13 @@ function openDetail(id){const x=app.links.find(v=>v.id===id);if(!x)return;app.vi
   ${x.takeaway?`<div class="d-sec"><div class="lab">Takeaway clinico</div><p style="line-height:1.5">${esc(x.takeaway)}</p></div>`:''}
   ${x.notes?`<div class="d-sec"><div class="lab">Note</div><p style="line-height:1.5">${esc(x.notes)}</p></div>`:''}
   ${(x.tags||[]).length?`<div class="d-sec"><div class="lab">Tag</div><div class="d-chips" style="margin:0">${x.tags.map(t=>`<span class="chip" data-tag="${esc(t)}">#${esc(t)}</span>`).join('')}</div></div>`:''}
-  <div class="d-actions"><a class="btn filled" href="${esc(x.url)}" target="_blank" rel="noopener">Apri ↗</a><button class="btn tonal" data-d="edit">Modifica</button><button class="btn outline" data-d="status">Cambia stato</button><button class="btn outline" data-d="refresh">Aggiorna metadati</button><button class="btn outline" data-d="export">Esporta</button><button class="btn danger-btn" data-d="del">Elimina</button></div>`;
+  <div class="d-actions"><a class="btn filled" href="${esc(x.url)}" target="_blank" rel="noopener">Apri ↗</a><button class="btn tonal" data-d="edit">Modifica</button><button class="btn outline" data-d="status">Cambia stato</button><button class="btn outline" data-d="cat">Sposta categoria</button><button class="btn outline" data-d="refresh">Aggiorna metadati</button><button class="btn outline" data-d="export">Esporta</button><button class="btn danger-btn" data-d="del">Elimina</button></div>`;
   openSheet($('detailSheet'))}
 $('detailBody').addEventListener('click',async e=>{const tag=e.target.closest('[data-tag]');if(tag){closeSheets();app.filter='Tutti';$('searchInput').value=tag.dataset.tag;$('searchWrap').classList.add('q');screen('library');return}if(e.target.id==='absMore'){const b=$('absBox');b.classList.toggle('clamp');e.target.textContent=b.classList.contains('clamp')?'Mostra tutto':'Mostra meno';return}const a=e.target.closest('[data-d]');if(!a)return;const id=app.viewing,x=app.links.find(v=>v.id===id);if(!x)return;const act=a.dataset.d;
   if(act==='edit'){closeSheets();openForm(id)}
   else if(act==='del'){const ok=await confirmAction('Eliminare articolo?','"'+x.title+'" verrà rimosso.','Elimina','danger-btn');if(ok){app.links=app.links.filter(v=>v.id!==id);save();closeSheets();renderLibrary();renderHome();toast('Eliminato','ok')}}
   else if(act==='status'){const s=await pickFromList('Imposta stato',statuses);if(s){x.status=s;x.updatedAt=new Date().toISOString();save();openDetail(id);renderLibrary()}}
+  else if(act==='cat'){const c=await pickCategory('Sposta in categoria');if(c){x.category=c;x.updatedAt=new Date().toISOString();save();openDetail(id);renderLibrary();toast('Spostato in '+c,'ok')}}
   else if(act==='export'){downloadBlob(toBibtex([x]),'application/x-bibtex',`${(x.doi||x.title||'ref').replace(/[^\w.-]+/g,'_').slice(0,40)}.bib`);toast('BibTeX esportato','ok')}
   else if(act==='refresh'){if(!x.doi)return toast('Nessun DOI da aggiornare','warn');a.disabled=true;a.innerHTML='<span class="spin"></span>';try{const d=await fetchCrossref(x.doi);Object.assign(x,{title:d.title||x.title,authors:d.authors||x.authors,journal:d.journal||x.journal,year:d.year||x.year,abstract:d.abstract||x.abstract,url:x.url||d.url});x.updatedAt=new Date().toISOString();save();openDetail(id);renderLibrary();toast('Metadati aggiornati','ok')}catch{toast('Aggiornamento non riuscito','err');a.disabled=false;a.textContent='Aggiorna metadati'}}});
 
@@ -428,6 +442,7 @@ async function fetchCrossref(doi){const clean=normDoi(doi);const r=await fetch('
 async function fetchPubmed(pmid){const id=String(pmid).replace(/\D/g,'');const r=await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id='+id);if(!r.ok)throw new Error();const d=((await r.json()).result||{})[id];if(!d)throw new Error();const doiId=(d.articleids||[]).find(a=>a.idtype==='doi');return{title:d.title||'',journal:d.fulljournalname||d.source||'',year:(d.pubdate||'').slice(0,4),authors:(d.authors||[]).map(a=>a.name).join(', '),doi:doiId?doiId.value:'',pmid:id}}
 async function importInto(raw,btn){raw=(raw||'').trim();if(!raw)return toast('Inserisci un DOI o PMID','warn');const isPmid=/^\d{4,9}$/.test(raw.replace(/^pmid:?\s*/i,''));const old=btn?btn.innerHTML:'';if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span>'}try{const d=isPmid?await fetchPubmed(raw):await fetchCrossref(raw);if(d.title)$('title').value=d.title;if(d.authors)$('authors').value=d.authors;if(d.journal)$('journal').value=d.journal;if(d.year)$('year').value=d.year;if(d.doi)$('doi').value=d.doi;if(d.abstract)$('abstract').value=d.abstract;if(d.pmid)$('pmid').value=d.pmid;if(!$('url').value)$('url').value=d.url||(d.doi?'https://doi.org/'+normDoi(d.doi):'');toast('Metadati importati','ok')}catch{toast('Import non riuscito (sei offline?)','err')}finally{if(btn){btn.disabled=false;btn.innerHTML=old}}}
 $('impBtn').addEventListener('click',e=>importInto($('impId').value,e.currentTarget));
+$('newCatBtn').addEventListener('click',async()=>{const name=await promptDialog('Nuova categoria','Es. Emodinamica');if(!name)return;addCategory(name);fillSelects();$('category').value=name;toast('Categoria creata','ok')});
 
 /* ---------- backup ---------- */
 function downloadBlob(content,type,name){const blob=new Blob([content],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
@@ -463,7 +478,7 @@ document.querySelectorAll('.navbar button').forEach(b=>b.addEventListener('click
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.querySelector('.sheet.open'))closeSheets();else if(document.body.classList.contains('selecting'))exitSelect()}});
 
 /* boot */
-loadPrefs();load();fillSelects();renderFlags({});theme();renderHome();renderDois();setP(0,'In attesa di un PDF');observeTitle('home');
+loadPrefs();loadCats();load();rebuildCats();fillSelects();renderFlags({});theme();renderHome();renderDois();setP(0,'In attesa di un PDF');observeTitle('home');
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
 </script>
 </body>
