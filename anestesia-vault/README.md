@@ -49,6 +49,18 @@ periodicamente** — è il modo per conservarli e trasferirli.
 - Limite consigliato per file allegato: ~40 MB.
 - Scorciatoie: `Ctrl/Cmd + K` per la ricerca, `Esc` per chiudere le finestre.
 
+## Deploy su Cloudflare Pages (consigliato, gratis)
+
+Banda illimitata sul piano gratuito. Sito statico, nessuna build.
+
+1. Cloudflare Dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
+2. Seleziona il repo `awesome-agent-skills`.
+3. Impostazioni di build:
+   - **Framework preset**: `None`
+   - **Build command**: *vuoto*
+   - **Build output directory**: `anestesia-vault`
+4. **Save and Deploy**. Il file `_redirects` gestisce il fallback SPA.
+
 ## Deploy su Netlify
 
 Sito separato dedicato a quest'app:
