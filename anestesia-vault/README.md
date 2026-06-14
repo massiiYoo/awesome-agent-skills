@@ -26,7 +26,8 @@ L'app è una **Progressive Web App installabile**:
 - **🏠 Home** — riepilogo: numero documenti, categorie, ospedali, ripartizione per area e
   ultimi aggiunti.
 - **＋ Nuovo** (pulsante centrale) — aggiungi un documento: titolo, categoria, ospedale/fonte,
-  collega che l'ha inviato, data, tag, note e **file allegato** (PDF, foto, Word…).
+  collega che l'ha inviato, data, tag, note e **uno o più file allegati** (PDF, foto, Word…):
+  puoi caricare più documenti sullo stesso protocollo.
 - **📚 Documenti** — ricerca (titolo, ospedale, tag, note), filtro per categoria e ordinamento;
   i documenti sono raggruppati per categoria.
 - **🗂️ Categorie** — il *colpo d'occhio*: quanti protocolli hai per ogni area; tocca per aprirli.
@@ -60,7 +61,7 @@ periodicamente** — è il modo per conservarli e trasferirli tra dispositivi.
 - App a file singolo (`index.html`), HTML/CSS/JavaScript vanilla, **zero dipendenze**.
 - PWA: `manifest.json` + `sw.js` (service worker) + icone. Il service worker e l'installazione
   richiedono **HTTPS** (quindi funzionano online su Cloudflare/Netlify, non da `file://`).
-- Limite consigliato per file allegato: ~40 MB.
+- Più file per documento; limite consigliato per singolo file: ~40 MB.
 - Per rigenerare le icone: `node tools/genicon.js`.
 
 ## Deploy su Cloudflare Pages (consigliato, gratis)
