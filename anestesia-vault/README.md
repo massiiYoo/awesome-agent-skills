@@ -8,46 +8,60 @@ che estrarre DOI e classificare studi.
 > Esempio d'uso: categoria **Locoregionale** → ci raccogli i protocolli dei vari ospedali
 > e hai subito un colpo d'occhio per confrontarli al bisogno.
 
+Interfaccia **mobile-native** (Material You): barra di navigazione in basso, schede,
+bottom sheet, tema chiaro/scuro — la stessa esperienza di Periop Vault.
+
+## Installazione su Android (PWA)
+
+L'app è una **Progressive Web App installabile**:
+
+1. Apri l'URL del sito (es. su Cloudflare Pages / Netlify) con **Chrome** su Android.
+2. Menu **⋮** → **Aggiungi a schermata Home** / **Installa app**.
+3. Si apre come un'app vera, a tutto schermo e **offline**, con la sua icona.
+
+> Funziona allo stesso modo su iPhone (Safari → Condividi → "Aggiungi a Home").
+
 ## Come si usa
 
-1. Apri il file **`index.html`** con un doppio clic (si apre nel browser). Nessuna
-   installazione, nessun server, funziona **offline**.
-2. **+ Documento** → inserisci titolo, categoria, ospedale/fonte, collega che te l'ha
-   inviato, data, tag e note. Allega il file (PDF, foto, Word…) trascinandolo o
-   selezionandolo.
-3. Ritrovi tutto con la **ricerca** in alto (titolo, ospedale, tag, note) e con i filtri
-   nella barra laterale (**categoria** e **ospedale**).
-4. **Apri** per visualizzare il file, **⬇️** per scaricarlo.
+- **🏠 Home** — riepilogo: numero documenti, categorie, ospedali, ripartizione per area e
+  ultimi aggiunti.
+- **＋ Nuovo** (pulsante centrale) — aggiungi un documento: titolo, categoria, ospedale/fonte,
+  collega che l'ha inviato, data, tag, note e **file allegato** (PDF, foto, Word…).
+- **📚 Documenti** — ricerca (titolo, ospedale, tag, note), filtro per categoria e ordinamento;
+  i documenti sono raggruppati per categoria.
+- **🗂️ Categorie** — il *colpo d'occhio*: quanti protocolli hai per ogni area; tocca per aprirli.
+- Tocca un documento per il **dettaglio**: **Apri** il file, **Scarica**, **Modifica**, **Elimina**.
 
 ## Classificazione
 
 - Categorie predefinite utili in anestesia (Locoregionale, Anestesia generale, Vie aeree,
   Terapia del dolore, Ostetricia, Pediatria, Terapia intensiva, ERAS, ecc.).
-- Puoi **creare categorie nuove** semplicemente scrivendole nel campo Categoria.
+- Puoi **creare categorie nuove** col pulsante ＋ accanto al campo Categoria.
 - **Tag** liberi e campo **Ospedale/Fonte** per filtrare e confrontare protocolli tra reparti.
 
 ## Backup e ripristino
 
-Menu **Backup ▾** in alto a destra:
+Scheda **💾 Backup**:
 
-- **Esporta backup (.json)** — salva *tutto*, file inclusi, in un unico file. Mettilo su
-  cloud / chiavetta per non perdere nulla o per spostarti su un altro computer.
-- **Importa / Ripristina** — ricarica un backup. Puoi scegliere se **unire** all'archivio
-  attuale o **sostituirlo**.
-- **Esporta elenco (CSV)** — esporta solo l'elenco (senza file) per Excel.
-- **Svuota archivio** — cancella tutto (chiede doppia conferma).
+- **Esporta tutto (JSON)** — salva *tutto*, file inclusi, in un unico file.
+- **Condividi / salva su Drive** — usa la condivisione di sistema (utile da telefono).
+- **Importa / Ripristina** — ricarica un backup, scegliendo se **unire** o **sostituire**.
+- **Esporta elenco (CSV)** — solo l'elenco (senza file) per Excel.
+- **Carica esempi** / **Svuota archivio**.
 
 ## Dove finiscono i dati
 
-Tutto è salvato **localmente nel tuo browser** (IndexedDB), inclusi i file allegati: nessun
-dato esce dal tuo computer. Poiché i dati sono legati al browser/profilo, **esporta un backup
-periodicamente** — è il modo per conservarli e trasferirli.
+Tutto è salvato **localmente sul dispositivo** (IndexedDB), inclusi i file allegati: nessun
+dato esce da casa tua. Poiché i dati sono legati a quel browser/URL, **esporta un backup
+periodicamente** — è il modo per conservarli e trasferirli tra dispositivi.
 
 ## Note tecniche
 
-- File singolo, HTML/CSS/JavaScript vanilla, zero dipendenze.
+- App a file singolo (`index.html`), HTML/CSS/JavaScript vanilla, **zero dipendenze**.
+- PWA: `manifest.json` + `sw.js` (service worker) + icone. Il service worker e l'installazione
+  richiedono **HTTPS** (quindi funzionano online su Cloudflare/Netlify, non da `file://`).
 - Limite consigliato per file allegato: ~40 MB.
-- Scorciatoie: `Ctrl/Cmd + K` per la ricerca, `Esc` per chiudere le finestre.
+- Per rigenerare le icone: `node tools/genicon.js`.
 
 ## Deploy su Cloudflare Pages (consigliato, gratis)
 
