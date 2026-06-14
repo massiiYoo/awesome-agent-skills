@@ -149,6 +149,11 @@
     .navbar button{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--on-variant);font-size:.64rem;font-weight:700;padding:4px 0;min-width:0}
     .navbar .ind{width:52px;height:30px;border-radius:999px;display:grid;place-items:center;font-size:1.1rem;transition:background .2s}
     .pdfpage{width:100%;display:block;border-radius:10px;box-shadow:var(--shadow-1);margin:0 auto 10px;background:#fff}
+    .sheet:fullscreen{height:100vh;max-height:100vh;width:100vw;border-radius:0;transform:none;background:var(--s-low)}
+    .sheet:fullscreen .grab{display:none}
+    .sheet:fullscreen .sheet-body{max-height:none;height:calc(100vh - 64px)}
+    .sheet:-webkit-full-screen{height:100vh;max-height:100vh;width:100vw;border-radius:0;transform:none;background:var(--s-low)}
+    .sheet:-webkit-full-screen .grab{display:none}
     .navbar button.on{color:var(--on-surface)}.navbar button.on .ind{background:var(--primary-container);color:var(--on-primary-container)}
 
     /* ---------- scrim, sheets ---------- */
@@ -242,6 +247,12 @@
         <input id="importJson" type="file" accept="application/json" hidden />
         <div class="grid2"><button class="btn outline" type="button" id="exportBibBtn">BibTeX</button><button class="btn outline" type="button" id="exportRisBtn">RIS</button></div>
         <p class="hint">BibTeX/RIS si importano in Zotero, Mendeley o EndNote.</p>
+        <div style="height:1px;background:var(--outline-v);margin:6px 0"></div>
+        <p class="hint">Archivio PDF (i report del tab Report), come file ZIP:</p>
+        <button class="btn tonal full" type="button" id="exportPdfBtn">Esporta PDF (ZIP)</button>
+        <label class="btn tonal full" for="importPdfZip" style="cursor:pointer">Importa PDF (ZIP)</label>
+        <input id="importPdfZip" type="file" accept=".zip,application/zip" hidden />
+        <div style="height:1px;background:var(--outline-v);margin:6px 0"></div>
         <button class="btn outline full" type="button" id="seedBtn">Carica esempi</button>
       </div>
     </section>
@@ -276,7 +287,7 @@
 
 <section class="sheet detail" id="detailSheet" aria-hidden="true"><div class="grab"></div><div class="sheet-head"><h2>Dettaglio</h2><button class="icon-btn" data-close aria-label="Chiudi">✕</button></div><div class="sheet-body" id="detailBody"></div></section>
 
-<section class="sheet form" id="readerSheet" aria-hidden="true"><div class="grab"></div><div class="sheet-head"><button class="text-btn" data-close>Chiudi</button><h2 id="readerTitle" style="flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1rem">PDF</h2><button class="icon-btn" id="readerDel" aria-label="Elimina PDF">🗑️</button></div><div class="sheet-body"><div id="readerDois"></div><div id="readerPages"></div></div></section>
+<section class="sheet form" id="readerSheet" aria-hidden="true"><div class="grab"></div><div class="sheet-head"><button class="text-btn" data-close>Chiudi</button><h2 id="readerTitle" style="flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1rem">PDF</h2><button class="icon-btn" id="readerFs" aria-label="Schermo intero">⛶</button><button class="icon-btn" id="readerDel" aria-label="Elimina PDF">🗑️</button></div><div class="sheet-body" id="readerScroll"><div id="readerDois"></div><div id="readerPages"></div></div></section>
 
 <section class="sheet form" id="formSheet" aria-hidden="true">
   <div class="grab"></div>
@@ -421,7 +432,7 @@ $('selDelete').addEventListener('click',async()=>{const n=app.selected.size;cons
 
 /* ---------- DETAIL sheet ---------- */
 function openSheet(el){$('scrim').classList.add('show');el.classList.add('open');el.setAttribute('aria-hidden','false');document.body.classList.add('locked')}
-function closeSheets(){document.querySelectorAll('.sheet').forEach(s=>{s.classList.remove('open');s.setAttribute('aria-hidden','true')});$('scrim').classList.remove('show');document.body.classList.remove('locked');app.reading=null;const rp=$('readerPages');if(rp)rp.innerHTML=''}
+function closeSheets(){if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document)}document.querySelectorAll('.sheet').forEach(s=>{s.classList.remove('open');s.setAttribute('aria-hidden','true')});$('scrim').classList.remove('show');document.body.classList.remove('locked');app.reading=null;const rp=$('readerPages');if(rp)rp.innerHTML=''}
 $('scrim').addEventListener('click',closeSheets);
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeSheets));
 function openDetail(id){const x=app.links.find(v=>v.id===id);if(!x)return;app.viewing=id;const doi=x.doi?`<a class="link" href="https://doi.org/${encodeURIComponent(normDoi(x.doi))}" target="_blank" rel="noopener">${esc(x.doi)}</a>`:'—';const pmid=x.pmid?`<a class="link" href="https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(x.pmid)}/" target="_blank" rel="noopener">${esc(x.pmid)}</a>`:'—';const flags=Object.entries(x.flags||{}).filter(([,v])=>v).map(([k])=>({guideline:'Guideline',practice:'Practice changing',fulltext:'Full text'}[k]));
@@ -511,6 +522,20 @@ function renderReaderDois(p){const dois=p.dois||[];$('readerDois').innerHTML=doi
 async function openReader(id){const p=app.pdfs.find(x=>x.id===id);if(!p)return;app.reading=id;$('readerTitle').textContent=p.name;renderReaderDois(p);$('readerPages').innerHTML='<div class="hint" style="padding:14px 0">Carico il PDF…</div>';openSheet($('readerSheet'));let blob;try{blob=await idbGet(id)}catch{blob=null}if(app.reading!==id)return;if(!blob){$('readerPages').innerHTML='<div class="empty"><div class="big">⚠️</div><div>File non disponibile.</div></div>';return}try{pdfjsLib.GlobalWorkerOptions.workerSrc='./assets/pdf.worker.min.js';const buf=await blob.arrayBuffer();const doc=await pdfjsLib.getDocument({data:buf}).promise;if(app.reading!==id)return;$('readerPages').innerHTML='';const cw=$('readerPages').clientWidth||document.documentElement.clientWidth-36;const dpr=Math.min(window.devicePixelRatio||1,2);for(let i=1;i<=doc.numPages;i++){if(app.reading!==id)return;const page=await doc.getPage(i);const v0=page.getViewport({scale:1});const vp=page.getViewport({scale:(cw*dpr)/v0.width});const c=document.createElement('canvas');c.className='pdfpage';c.width=vp.width;c.height=vp.height;$('readerPages').appendChild(c);await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise}}catch(e){console.error(e);if(app.reading===id)$('readerPages').innerHTML='<div class="empty"><div class="big">⚠️</div><div>Impossibile aprire il PDF.</div></div>'}}
 $('readerDois').addEventListener('click',e=>{const a=e.target.closest('[data-radd]');if(!a)return;const d=a.dataset.radd;closeSheets();openForm();$('doi').value=d;$('impId').value=d;$('url').value='https://doi.org/'+d;$('takeaway').value='DOI dal report PDF.';toast('Recupero i metadati…','');importInto(d,$('impBtn'))});
 $('readerDel').addEventListener('click',async()=>{const id=app.reading;const p=app.pdfs.find(x=>x.id===id);if(!p)return;const ok=await confirmAction('Eliminare il PDF?',`"${p.name}" verrà rimosso dall'archivio.`,'Elimina','danger-btn');if(!ok)return;try{await idbDel(id)}catch{}app.pdfs=app.pdfs.filter(x=>x.id!==id);savePdfs();closeSheets();renderReports();toast('PDF eliminato','ok')});
+
+/* ---------- PDF backup (ZIP, store method) ---------- */
+const _crcT=(()=>{let t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xedb88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u8){let c=0xffffffff;for(let i=0;i<u8.length;i++)c=_crcT[(c^u8[i])&0xff]^(c>>>8);return (c^0xffffffff)>>>0}
+function _wU32(a,o,v){a[o]=v&255;a[o+1]=(v>>>8)&255;a[o+2]=(v>>>16)&255;a[o+3]=(v>>>24)&255}
+function _wU16(a,o,v){a[o]=v&255;a[o+1]=(v>>>8)&255}
+function buildZip(entries){const enc=new TextEncoder();const parts=[];const centrals=[];let offset=0;for(const e of entries){const name=enc.encode(e.name);const data=e.data;const crc=crc32(data);const lh=new Uint8Array(30+name.length);_wU32(lh,0,0x04034b50);_wU16(lh,4,20);_wU32(lh,14,crc);_wU32(lh,18,data.length);_wU32(lh,22,data.length);_wU16(lh,26,name.length);lh.set(name,30);parts.push(lh,data);const ch=new Uint8Array(46+name.length);_wU32(ch,0,0x02014b50);_wU16(ch,4,20);_wU16(ch,6,20);_wU32(ch,16,crc);_wU32(ch,20,data.length);_wU32(ch,24,data.length);_wU16(ch,28,name.length);_wU32(ch,42,offset);ch.set(name,46);centrals.push(ch);offset+=lh.length+data.length}const cdSize=centrals.reduce((s,c)=>s+c.length,0);const eocd=new Uint8Array(22);_wU32(eocd,0,0x06054b50);_wU16(eocd,8,entries.length);_wU16(eocd,10,entries.length);_wU32(eocd,12,cdSize);_wU32(eocd,16,offset);return new Blob([...parts,...centrals,eocd],{type:'application/zip'})}
+async function readZip(file){const buf=new Uint8Array(await file.arrayBuffer());const dv=new DataView(buf.buffer);const out={};let i=0;const dec=new TextDecoder();while(i+4<=buf.length&&dv.getUint32(i,true)===0x04034b50){const method=dv.getUint16(i+8,true);const compSize=dv.getUint32(i+18,true);const nameLen=dv.getUint16(i+26,true);const extraLen=dv.getUint16(i+28,true);const name=dec.decode(buf.subarray(i+30,i+30+nameLen));const ds=i+30+nameLen+extraLen;const data=buf.subarray(ds,ds+compSize);if(method===0)out[name]=data.slice();else if(method===8){try{out[name]=new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer())}catch{out[name]=null}}i=ds+compSize}return out}
+async function exportPdfs(){if(!app.pdfs.length)return toast('Nessun PDF da esportare','warn');toast('Preparo l’archivio…','');try{const entries=[];const manifest=[];for(const p of app.pdfs){const blob=await idbGet(p.id);if(!blob)continue;const file='pdfs/'+p.id+'.pdf';entries.push({name:file,data:new Uint8Array(await blob.arrayBuffer())});manifest.push({id:p.id,name:p.name,size:p.size,addedAt:p.addedAt,numPages:p.numPages,dois:p.dois,file})}if(!entries.length)return toast('Nessun file disponibile','warn');entries.push({name:'manifest.json',data:new TextEncoder().encode(JSON.stringify(manifest,null,2))});downloadBlob(buildZip(entries),'application/zip',`periop-pdfs-${stamp()}.zip`);toast(`Esportati ${manifest.length} PDF`,'ok')}catch(e){console.error(e);toast('Esportazione non riuscita','err')}}
+async function importPdfs(file){toast('Importo…','');try{const entries=await readZip(file);const mf=entries['manifest.json'];if(!mf)return toast('ZIP non valido (manifest mancante)','err');const manifest=JSON.parse(new TextDecoder().decode(mf));let added=0;for(const m of manifest){const data=entries[m.file||('pdfs/'+m.id+'.pdf')];if(!data)continue;try{await idbPut(m.id,new Blob([data],{type:'application/pdf'}))}catch{continue}const meta={id:m.id,name:m.name,size:m.size,addedAt:m.addedAt,numPages:m.numPages,dois:m.dois||[]};const rec=app.pdfs.find(p=>p.id===m.id);if(rec)Object.assign(rec,meta);else{app.pdfs.unshift(meta);added++}}savePdfs();renderReports();toast(`Importati ${added} PDF`,'ok')}catch(e){console.error(e);toast('Import non riuscito','err')}}
+$('exportPdfBtn').addEventListener('click',exportPdfs);
+$('importPdfZip').addEventListener('change',e=>{const f=e.target.files[0];if(f)importPdfs(f);e.target.value=''});
+function readerFsToggle(){const el=$('readerSheet');const fs=document.fullscreenElement||document.webkitFullscreenElement;if(!fs){const rq=el.requestFullscreen||el.webkitRequestFullscreen;if(rq)try{const r=rq.call(el);if(r&&r.catch)r.catch(()=>{})}catch{}}else{const ex=document.exitFullscreen||document.webkitExitFullscreen;if(ex)ex.call(document)}}
+$('readerFs').addEventListener('click',readerFsToggle);
 
 loadPrefs();loadCats();loadPdfs();load();rebuildCats();fillSelects();renderFlags({});theme();renderHome();renderDois();setP(0,'In attesa di un PDF');observeTitle('home');
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
