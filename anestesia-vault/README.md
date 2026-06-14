@@ -48,3 +48,11 @@ periodicamente** — è il modo per conservarli e trasferirli.
 - File singolo, HTML/CSS/JavaScript vanilla, zero dipendenze.
 - Limite consigliato per file allegato: ~40 MB.
 - Scorciatoie: `Ctrl/Cmd + K` per la ricerca, `Esc` per chiudere le finestre.
+
+## Deploy su Netlify
+
+Sito separato dedicato a quest'app:
+
+1. Netlify → *Add new site* → *Import from Git* → repo `awesome-agent-skills`.
+2. **Base/Publish directory**: `anestesia-vault`.
+3. Nessun *build command*. Il file `_redirects` gestisce il fallback SPA.
