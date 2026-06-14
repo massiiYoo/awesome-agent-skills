@@ -145,9 +145,10 @@
     /* ---------- FAB & nav ---------- */
     .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom));z-index:25;display:inline-flex;align-items:center;gap:8px;height:56px;padding:0 24px;border-radius:18px;background:var(--grad);color:#fff;font-weight:800;font-size:1rem;box-shadow:0 10px 28px color-mix(in srgb,var(--primary) 50%,transparent)}
     .fab:active{filter:brightness(.95)}.fab .plus{font-size:1.4rem;line-height:1}
-    .navbar{position:fixed;left:0;right:0;bottom:0;z-index:24;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:var(--s-low);border-top:1px solid var(--outline-v);box-shadow:0 -4px 20px rgba(0,0,0,.06);transform:translateZ(0)}
-    .navbar button{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--on-variant);font-size:.7rem;font-weight:700;padding:4px 0}
-    .navbar .ind{width:60px;height:32px;border-radius:999px;display:grid;place-items:center;font-size:1.15rem;transition:background .2s}
+    .navbar{position:fixed;left:0;right:0;bottom:0;z-index:24;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:8px 6px calc(8px + env(safe-area-inset-bottom));background:var(--s-low);border-top:1px solid var(--outline-v);box-shadow:0 -4px 20px rgba(0,0,0,.06);transform:translateZ(0)}
+    .navbar button{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--on-variant);font-size:.64rem;font-weight:700;padding:4px 0;min-width:0}
+    .navbar .ind{width:52px;height:30px;border-radius:999px;display:grid;place-items:center;font-size:1.1rem;transition:background .2s}
+    .pdfpage{width:100%;display:block;border-radius:10px;box-shadow:var(--shadow-1);margin:0 auto 10px;background:#fff}
     .navbar button.on{color:var(--on-surface)}.navbar button.on .ind{background:var(--primary-container);color:var(--on-primary-container)}
 
     /* ---------- scrim, sheets ---------- */
@@ -224,7 +225,7 @@
     <section class="screen" id="pdf">
       <h1 class="large-title">PDF → DOI</h1>
       <div class="fields">
-        <div class="drop" id="drop"><strong>Carica weekly report PDF</strong><div class="hint" style="margin-top:6px">Trascina il file o toccalo. L'app legge il PDF nel browser e trova i DOI.</div><input id="pdfFile" type="file" accept="application/pdf" style="margin-top:14px" /></div>
+        <div class="drop" id="drop"><strong>Carica weekly report PDF</strong><div class="hint" style="margin-top:6px">Trascina il file o toccalo. L'app legge il PDF, trova i DOI e lo salva nel tab <b>Report</b> per rileggerlo.</div><input id="pdfFile" type="file" accept="application/pdf" style="margin-top:14px" /></div>
         <button class="btn filled full" type="button" id="extractBtn">Leggi PDF e trova DOI</button>
         <div class="card-soft"><div class="hint" style="padding:0">Avanzamento</div><div class="progress" style="margin-top:8px"><span id="bar"></span></div><div class="hint" id="progressText" style="padding:8px 0 0">In attesa di un PDF</div></div>
         <div style="display:flex;align-items:center;gap:12px"><div style="font-size:1.6rem;font-weight:800" id="doiCount">0</div><div class="hint" id="pdfMeta" style="flex:1;padding:0">Nessun PDF analizzato</div><button class="btn tonal" type="button" id="copyAllBtn" style="display:none;min-height:44px;padding:10px 16px">Copia tutti</button></div>
@@ -244,6 +245,12 @@
         <button class="btn outline full" type="button" id="seedBtn">Carica esempi</button>
       </div>
     </section>
+
+    <section class="screen" id="report">
+      <h1 class="large-title">Report</h1>
+      <p class="subtitle" style="padding:0 2px 12px">I PDF che carichi vengono salvati qui: rileggi il digest mensile completo quando vuoi.</p>
+      <div class="cards" id="reportList"></div>
+    </section>
   </main>
 </div>
 
@@ -252,6 +259,7 @@
   <button class="on" data-go="home"><span class="ind">🏠</span>Home</button>
   <button data-go="library"><span class="ind">📚</span>Libreria</button>
   <button data-go="pdf"><span class="ind">📄</span>PDF</button>
+  <button data-go="report"><span class="ind">🗞️</span>Report</button>
   <button data-go="backup"><span class="ind">💾</span>Backup</button>
 </nav>
 
@@ -267,6 +275,8 @@
 <div class="scrim" id="scrim"></div>
 
 <section class="sheet detail" id="detailSheet" aria-hidden="true"><div class="grab"></div><div class="sheet-head"><h2>Dettaglio</h2><button class="icon-btn" data-close aria-label="Chiudi">✕</button></div><div class="sheet-body" id="detailBody"></div></section>
+
+<section class="sheet form" id="readerSheet" aria-hidden="true"><div class="grab"></div><div class="sheet-head"><button class="text-btn" data-close>Chiudi</button><h2 id="readerTitle" style="flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1rem">PDF</h2><button class="icon-btn" id="readerDel" aria-label="Elimina PDF">🗑️</button></div><div class="sheet-body"><div id="readerDois"></div><div id="readerPages"></div></div></section>
 
 <section class="sheet form" id="formSheet" aria-hidden="true">
   <div class="grab"></div>
@@ -298,9 +308,9 @@ const STORE='periop-v9-netlify',PREFS='periop-prefs',CATS='periop-cats';
 const defaultCategories=['Anestesia generale','Vie aeree','Terapia intensiva','Analgesia regionale','ERAS','Monitoraggio','Farmacologia','Ecografia/POCUS','Linee guida','Spunti ricerca','Cambio pratica clinica','Importante'];
 let categories=[...defaultCategories];
 const statuses=['Da leggere','Letto','Da rivedere'],priorities=['Alta','Media','Bassa'];
-let app={links:[],editing:null,theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light',dois:[],pdfName:'',pdfText:'',sort:'recent',filter:'Tutti',selected:new Set(),viewing:null,cats:[],collapsed:new Set()};
+let app={links:[],editing:null,theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light',dois:[],pdfName:'',pdfText:'',sort:'recent',filter:'Tutti',selected:new Set(),viewing:null,cats:[],collapsed:new Set(),pdfs:[],reading:null};
 const $=id=>document.getElementById(id);
-const screenTitles={home:'Home',library:'Libreria',pdf:'PDF → DOI',backup:'Backup'};
+const screenTitles={home:'Home',library:'Libreria',pdf:'PDF → DOI',report:'Report',backup:'Backup'};
 
 /* storage */
 function save(){localStorage.setItem(STORE,JSON.stringify(app.links))}
@@ -351,7 +361,7 @@ function collectFlags(){const g=k=>{const el=document.querySelector('[data-flag=
 function theme(){document.documentElement.setAttribute('data-theme',app.theme);$('themeBtn').textContent=app.theme==='dark'?'☀️':'🌙';document.querySelector('meta[name=theme-color]').setAttribute('content',app.theme==='dark'?'#0a0a12':'#fbf3dc')}
 let titleObserver=null;
 function observeTitle(id){if(titleObserver)titleObserver.disconnect();const lt=document.querySelector('#'+id+' .large-title, #'+id+' .brand-hero');if(!lt||!('IntersectionObserver'in window)){$('appbar').classList.toggle('elevated',false);return}titleObserver=new IntersectionObserver(es=>{$('appbar').classList.toggle('elevated',!es[0].isIntersecting)},{rootMargin:'-56px 0px 0px 0px',threshold:0});titleObserver.observe(lt)}
-function screen(id){document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.navbar button').forEach(x=>x.classList.toggle('on',x.dataset.go===id));$('barTitle').textContent=screenTitles[id]||'';$('fab').style.display=(id==='home'||id==='library')?'inline-flex':'none';window.scrollTo(0,0);observeTitle(id);if(id==='home')renderHome();if(id==='library')renderLibrary();if(id==='pdf')renderDois()}
+function screen(id){document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.navbar button').forEach(x=>x.classList.toggle('on',x.dataset.go===id));$('barTitle').textContent=screenTitles[id]||'';$('fab').style.display=(id==='home'||id==='library')?'inline-flex':'none';window.scrollTo(0,0);observeTitle(id);if(id==='home')renderHome();if(id==='library')renderLibrary();if(id==='pdf')renderDois();if(id==='report')renderReports()}
 
 /* ---------- HOME dashboard ---------- */
 function renderHome(){const L=app.links,total=L.length;const read=L.filter(x=>x.status==='Letto').length,later=L.filter(x=>x.status==='Da leggere').length,review=L.filter(x=>x.status==='Da rivedere').length;const pct=total?Math.round(read/total*100):0;
@@ -411,7 +421,7 @@ $('selDelete').addEventListener('click',async()=>{const n=app.selected.size;cons
 
 /* ---------- DETAIL sheet ---------- */
 function openSheet(el){$('scrim').classList.add('show');el.classList.add('open');el.setAttribute('aria-hidden','false');document.body.classList.add('locked')}
-function closeSheets(){document.querySelectorAll('.sheet').forEach(s=>{s.classList.remove('open');s.setAttribute('aria-hidden','true')});$('scrim').classList.remove('show');document.body.classList.remove('locked')}
+function closeSheets(){document.querySelectorAll('.sheet').forEach(s=>{s.classList.remove('open');s.setAttribute('aria-hidden','true')});$('scrim').classList.remove('show');document.body.classList.remove('locked');app.reading=null;const rp=$('readerPages');if(rp)rp.innerHTML=''}
 $('scrim').addEventListener('click',closeSheets);
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeSheets));
 function openDetail(id){const x=app.links.find(v=>v.id===id);if(!x)return;app.viewing=id;const doi=x.doi?`<a class="link" href="https://doi.org/${encodeURIComponent(normDoi(x.doi))}" target="_blank" rel="noopener">${esc(x.doi)}</a>`:'—';const pmid=x.pmid?`<a class="link" href="https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(x.pmid)}/" target="_blank" rel="noopener">${esc(x.pmid)}</a>`:'—';const flags=Object.entries(x.flags||{}).filter(([,v])=>v).map(([k])=>({guideline:'Guideline',practice:'Practice changing',fulltext:'Full text'}[k]));
@@ -466,7 +476,7 @@ $('seedBtn').addEventListener('click',async()=>{if(app.links.length){const ok=aw
 function setP(p,t){$('bar').style.width=p+'%';$('progressText').textContent=t}
 function cleanDoi(d){return d.replace(/^https?:\/\/doi\.org\//i,'').replace(/^doi\s*:?/i,'').replace(/[\s\]\[)>(<;,.]+$/g,'').trim()}
 function getDois(txt){const rx=/(?:https?:\/\/doi\.org\/)?10\.\d{4,9}\/[A-Z0-9._;()/:+-]+/ig;return [...new Set((txt.match(rx)||[]).map(cleanDoi).filter(x=>/^10\.\d{4,9}\//i.test(x)))]}
-async function extractPdf(){const file=$('pdfFile').files[0];if(!file)return toast('Seleziona un PDF','warn');try{if(!window.pdfjsLib)throw new Error();pdfjsLib.GlobalWorkerOptions.workerSrc='./assets/pdf.worker.min.js';setP(8,'Apro il PDF...');const bytes=await file.arrayBuffer();const doc=await pdfjsLib.getDocument({data:bytes}).promise;let full='';for(let i=1;i<=doc.numPages;i++){setP(10+Math.round(i/doc.numPages*75),`Pagina ${i}/${doc.numPages}...`);const page=await doc.getPage(i);const text=await page.getTextContent();full+='\n'+text.items.map(it=>it.str).join(' ')}setP(92,'Cerco i DOI...');app.pdfText=full;app.pdfName=file.name;app.dois=getDois(full+' '+file.name);renderDois();setP(100,app.dois.length?`${app.dois.length} DOI trovati`:'Nessun DOI trovato');}catch(err){console.error(err);setP(0,'Errore di lettura PDF');toast('Non riesco a leggere questo PDF','err',3600)}}
+async function extractPdf(){const file=$('pdfFile').files[0];if(!file)return toast('Seleziona un PDF','warn');try{if(!window.pdfjsLib)throw new Error();pdfjsLib.GlobalWorkerOptions.workerSrc='./assets/pdf.worker.min.js';setP(8,'Apro il PDF...');const bytes=await file.arrayBuffer();const doc=await pdfjsLib.getDocument({data:bytes}).promise;let full='';for(let i=1;i<=doc.numPages;i++){setP(10+Math.round(i/doc.numPages*75),`Pagina ${i}/${doc.numPages}...`);const page=await doc.getPage(i);const text=await page.getTextContent();full+='\n'+text.items.map(it=>it.str).join(' ')}setP(92,'Cerco i DOI...');app.pdfText=full;app.pdfName=file.name;app.dois=getDois(full+' '+file.name);renderDois();setP(100,app.dois.length?`${app.dois.length} DOI trovati`:'Nessun DOI trovato');await storePdf(file,doc.numPages,app.dois);}catch(err){console.error(err);setP(0,'Errore di lettura PDF');toast('Non riesco a leggere questo PDF','err',3600)}}
 function renderDois(){$('doiCount').textContent=app.dois.length;$('pdfMeta').textContent=app.pdfName?`${app.pdfName} · ${app.dois.length} DOI`:'Nessun PDF analizzato';$('copyAllBtn').style.display=app.dois.length?'inline-flex':'none';$('doiList').innerHTML=app.dois.length?app.dois.map((d,i)=>{const saved=app.links.some(x=>normDoi(x.doi)===normDoi(d));return `<article class="doi"><div class="hint" style="padding:0">DOI ${i+1}${saved?' · già in archivio':''}</div><div class="mono" style="word-break:break-all;margin:4px 0 10px">${esc(d)}</div><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn filled" href="https://doi.org/${encodeURIComponent(d)}" target="_blank" rel="noopener" style="min-height:42px;padding:9px 16px">Apri</a><button class="btn tonal" data-copy="${esc(d)}" style="min-height:42px;padding:9px 16px">Copia</button><button class="btn outline" data-add="${esc(d)}" style="min-height:42px;padding:9px 16px">Crea scheda</button></div></article>`}).join(''):'<div class="empty"><div class="big">📄</div><div>Nessun DOI. Carica un weekly report PDF.</div></div>'}
 $('extractBtn').addEventListener('click',extractPdf);
 $('pdfFile').addEventListener('change',()=>{if($('pdfFile').files[0])extractPdf()});
@@ -484,7 +494,25 @@ document.querySelectorAll('.navbar button').forEach(b=>b.addEventListener('click
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.querySelector('.sheet.open'))closeSheets();else if(document.body.classList.contains('selecting'))exitSelect()}});
 
 /* boot */
-loadPrefs();loadCats();load();rebuildCats();fillSelects();renderFlags({});theme();renderHome();renderDois();setP(0,'In attesa di un PDF');observeTitle('home');
+/* ---------- PDF archive (Report) ---------- */
+const PDFS='periop-pdfs';let _db=null;
+function idb(){return new Promise((res,rej)=>{if(_db)return res(_db);let r;try{r=indexedDB.open('periop-vault',1)}catch(e){return rej(e)}r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('pdfs'))db.createObjectStore('pdfs')};r.onsuccess=()=>{_db=r.result;res(_db)};r.onerror=()=>rej(r.error)})}
+function idbPut(id,blob){return idb().then(db=>new Promise((res,rej)=>{const t=db.transaction('pdfs','readwrite');t.objectStore('pdfs').put(blob,id);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)}))}
+function idbGet(id){return idb().then(db=>new Promise((res,rej)=>{const t=db.transaction('pdfs','readonly');const q=t.objectStore('pdfs').get(id);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}))}
+function idbDel(id){return idb().then(db=>new Promise((res,rej)=>{const t=db.transaction('pdfs','readwrite');t.objectStore('pdfs').delete(id);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)}))}
+function loadPdfs(){try{app.pdfs=JSON.parse(localStorage.getItem(PDFS)||'[]')||[]}catch{app.pdfs=[]}}
+function savePdfs(){try{localStorage.setItem(PDFS,JSON.stringify(app.pdfs))}catch{}}
+function fmtSize(b){b=+b||0;return b>=1048576?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB'}
+function fmtDate(iso){try{return new Date(iso).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'})}catch{return ''}}
+async function storePdf(file,numPages,dois){let rec=app.pdfs.find(p=>p.name===file.name&&p.size===file.size);const id=rec?rec.id:uid();try{await idbPut(id,file)}catch(e){console.error(e);toast('PDF non salvato (spazio insufficiente?)','err');return}const meta={id,name:file.name,size:file.size,addedAt:rec?rec.addedAt:new Date().toISOString(),numPages:numPages||0,dois:dois||[]};if(rec)Object.assign(rec,meta);else app.pdfs.unshift(meta);savePdfs();if($('report').classList.contains('active'))renderReports();toast('PDF salvato in Report','ok')}
+function renderReports(){const list=[...app.pdfs].sort((a,b)=>(b.addedAt||'').localeCompare(a.addedAt||''));$('reportList').innerHTML=list.length?list.map(p=>`<article class="item" data-pdf="${p.id}"><span class="dot" style="background:var(--primary)"></span><div class="body"><h3>${esc(p.name)}</h3><div class="sub2">${fmtDate(p.addedAt)} · ${p.numPages||'?'} pag · ${fmtSize(p.size)}</div><div class="chips"><span class="chip cat">${(p.dois||[]).length} DOI</span></div></div></article>`).join(''):`<div class="empty"><div class="big">🗞️</div><div>Nessun report salvato.</div><div class="hint" style="padding:0">Carica un PDF dal tab PDF: verrà salvato qui per rileggerlo.</div><button class="btn filled" data-go="pdf" style="margin-top:6px">Vai a PDF</button></div>`}
+$('reportList').addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(go){screen(go.dataset.go);return}const it=e.target.closest('[data-pdf]');if(it)openReader(it.dataset.pdf)});
+function renderReaderDois(p){const dois=p.dois||[];$('readerDois').innerHTML=dois.length?`<div class="card-soft" style="margin:4px 0 14px"><h3>DOI nel report (${dois.length})</h3><div class="cards">${dois.map(d=>`<div class="doi"><div class="mono" style="word-break:break-all;font-size:.82rem">${esc(d)}</div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><a class="btn tonal" href="https://doi.org/${encodeURIComponent(d)}" target="_blank" rel="noopener" style="min-height:40px;padding:8px 14px">Apri</a><button class="btn outline" data-radd="${esc(d)}" style="min-height:40px;padding:8px 14px">Crea scheda</button></div></div>`).join('')}</div></div>`:''}
+async function openReader(id){const p=app.pdfs.find(x=>x.id===id);if(!p)return;app.reading=id;$('readerTitle').textContent=p.name;renderReaderDois(p);$('readerPages').innerHTML='<div class="hint" style="padding:14px 0">Carico il PDF…</div>';openSheet($('readerSheet'));let blob;try{blob=await idbGet(id)}catch{blob=null}if(app.reading!==id)return;if(!blob){$('readerPages').innerHTML='<div class="empty"><div class="big">⚠️</div><div>File non disponibile.</div></div>';return}try{pdfjsLib.GlobalWorkerOptions.workerSrc='./assets/pdf.worker.min.js';const buf=await blob.arrayBuffer();const doc=await pdfjsLib.getDocument({data:buf}).promise;if(app.reading!==id)return;$('readerPages').innerHTML='';const cw=$('readerPages').clientWidth||document.documentElement.clientWidth-36;const dpr=Math.min(window.devicePixelRatio||1,2);for(let i=1;i<=doc.numPages;i++){if(app.reading!==id)return;const page=await doc.getPage(i);const v0=page.getViewport({scale:1});const vp=page.getViewport({scale:(cw*dpr)/v0.width});const c=document.createElement('canvas');c.className='pdfpage';c.width=vp.width;c.height=vp.height;$('readerPages').appendChild(c);await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise}}catch(e){console.error(e);if(app.reading===id)$('readerPages').innerHTML='<div class="empty"><div class="big">⚠️</div><div>Impossibile aprire il PDF.</div></div>'}}
+$('readerDois').addEventListener('click',e=>{const a=e.target.closest('[data-radd]');if(!a)return;const d=a.dataset.radd;closeSheets();openForm();$('doi').value=d;$('impId').value=d;$('url').value='https://doi.org/'+d;$('takeaway').value='DOI dal report PDF.';toast('Recupero i metadati…','');importInto(d,$('impBtn'))});
+$('readerDel').addEventListener('click',async()=>{const id=app.reading;const p=app.pdfs.find(x=>x.id===id);if(!p)return;const ok=await confirmAction('Eliminare il PDF?',`"${p.name}" verrà rimosso dall'archivio.`,'Elimina','danger-btn');if(!ok)return;try{await idbDel(id)}catch{}app.pdfs=app.pdfs.filter(x=>x.id!==id);savePdfs();closeSheets();renderReports();toast('PDF eliminato','ok')});
+
+loadPrefs();loadCats();loadPdfs();load();rebuildCats();fillSelects();renderFlags({});theme();renderHome();renderDois();setP(0,'In attesa di un PDF');observeTitle('home');
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
 </script>
 </body>
