@@ -259,6 +259,7 @@
         <p class="hint">BibTeX/RIS si importano in Zotero, Mendeley o EndNote.</p>
         <div style="height:1px;background:var(--outline-v);margin:4px 0"></div>
         <button class="btn outline full" type="button" id="seedBtn">Carica esempi</button>
+        <div class="card-soft" style="padding:14px;margin-top:6px"><h3 style="margin-bottom:10px">Sincronizzazione tra dispositivi (beta)</h3><div id="syncBox"></div></div>
       </div>
     </section>
 
@@ -330,13 +331,13 @@ const $=id=>document.getElementById(id);
 const screenTitles={home:'Home',library:'Libreria',pdf:'PDF → DOI',report:'Report',backup:'Backup'};
 
 /* storage */
-function save(){localStorage.setItem(STORE,JSON.stringify(app.links))}
+function save(){localStorage.setItem(STORE,JSON.stringify(app.links));schedulePush()}
 function load(){try{app.links=(JSON.parse(localStorage.getItem(STORE)||'[]')||[]).map(sanitize)}catch{app.links=[]}}
 function savePrefs(){try{localStorage.setItem(PREFS,JSON.stringify({theme:app.theme,sort:app.sort,filter:app.filter,collapsed:[...app.collapsed],reportSort:app.reportSort}))}catch{}}
 function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PREFS)||'{}');if(p.theme)app.theme=p.theme;if(p.sort)app.sort=p.sort;if(p.filter)app.filter=p.filter;if(p.reportSort)app.reportSort=p.reportSort;if(Array.isArray(p.collapsed))app.collapsed=new Set(p.collapsed);}catch{}}
 function rebuildCats(){categories=[...new Set([...defaultCategories,...app.cats,...app.links.map(l=>l.category).filter(Boolean)])]}
 function loadCats(){try{const c=JSON.parse(localStorage.getItem(CATS)||'[]');app.cats=Array.isArray(c)?c.filter(x=>typeof x==='string'&&x.trim()):[]}catch{app.cats=[]}rebuildCats()}
-function saveCats(){try{localStorage.setItem(CATS,JSON.stringify(app.cats))}catch{}}
+function saveCats(){try{localStorage.setItem(CATS,JSON.stringify(app.cats))}catch{}schedulePush()}
 function addCategory(name){name=(name||'').trim();if(!name)return null;if(!app.cats.includes(name)&&!defaultCategories.includes(name)){app.cats.push(name);saveCats()}rebuildCats();return name}
 function esc(s=''){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
 
@@ -575,7 +576,25 @@ $('readerFs').addEventListener('click',readerFsToggle);
 function readerFsToggle(){const el=$('readerSheet');const fs=document.fullscreenElement||document.webkitFullscreenElement;if(!fs){const rq=el.requestFullscreen||el.webkitRequestFullscreen;if(rq)try{const r=rq.call(el);if(r&&r.catch)r.catch(()=>{})}catch{}}else{const ex=document.exitFullscreen||document.webkitExitFullscreen;if(ex)ex.call(document)}}
 $('readerFs').addEventListener('click',readerFsToggle);
 
-loadPrefs();loadCats();loadPdfs();loadDoiCache();load();rebuildCats();fillSelects();renderFlags({});theme();renderHome();renderDois();setP(0,'In attesa di un PDF');observeTitle('home');maybeBackupReminder();
+/* ---------- Sync (Supabase, articles+categories) ---------- */
+const SYNCCFG='periop-sync-cfg';let sb=null,sbUser=null,_pushT=null,_lastPull=0;
+function getSyncCfg(){try{return JSON.parse(localStorage.getItem(SYNCCFG)||'null')}catch{return null}}
+async function loadSupabase(){if(window._sbLib)return window._sbLib;window._sbLib=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');return window._sbLib}
+function setSyncStatus(s){app._syncStatus=s;renderSyncUI()}
+async function initSync(){const cfg=getSyncCfg();renderSyncUI();if(!cfg||!cfg.url||!cfg.key)return;try{const {createClient}=await loadSupabase();sb=createClient(cfg.url,cfg.key);const {data}=await sb.auth.getSession();sbUser=data&&data.session?data.session.user:null;sb.auth.onAuthStateChange((e,s)=>{sbUser=s?s.user:null;renderSyncUI();if(sbUser)syncNow()});renderSyncUI();if(sbUser)syncNow()}catch(e){console.error('sync init',e);setSyncStatus('Errore avvio sync: '+(e.message||e))}}
+function saveSyncConfig(url,key){url=(url||'').trim().replace(/\/+$/,'');key=(key||'').trim();if(!/^https:\/\/.+\.supabase\.co$/i.test(url))return toast('URL Supabase non valido','warn');if(!key)return toast('Inserisci la chiave anon','warn');localStorage.setItem(SYNCCFG,JSON.stringify({url,key}));toast('Configurazione salvata','ok');initSync()}
+async function syncSendLink(email){email=(email||'').trim();if(!sb)return toast('Configura prima Supabase','warn');if(!/^[^@]+@[^@]+\.[^@]+$/.test(email))return toast('Email non valida','warn');setSyncStatus('Invio il link…');const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});if(error){setSyncStatus('Errore: '+error.message);return toast('Errore: '+error.message,'err',4000)}setSyncStatus('Link inviato a '+email+'. Aprilo dalla mail su questo dispositivo.');toast('Ti ho inviato il link via email','ok',4500)}
+async function syncLogout(){try{if(sb)await sb.auth.signOut()}catch{}sbUser=null;setSyncStatus('')}
+async function syncPull(){if(!sb||!sbUser)return;const {data,error}=await sb.from('vault').select('data').eq('user_id',sbUser.id).maybeSingle();if(error)throw error;if(data&&data.data)mergeCloud(data.data)}
+function mergeCloud(cloud){let changed=false;if(Array.isArray(cloud.links)){const byKey=new Map(app.links.map(x=>[dedupKey(x),x]));cloud.links.map(sanitize).forEach(c=>{const k=dedupKey(c);const ex=byKey.get(k);if(!ex){app.links.unshift(c);byKey.set(k,c);changed=true}else if((c.updatedAt||'')>(ex.updatedAt||'')){Object.assign(ex,c);changed=true}})}if(Array.isArray(cloud.cats)){cloud.cats.forEach(c=>{if(typeof c==='string'&&c.trim()&&!app.cats.includes(c)&&!defaultCategories.includes(c)){app.cats.push(c);changed=true}})}if(changed){localStorage.setItem(STORE,JSON.stringify(app.links));try{localStorage.setItem(CATS,JSON.stringify(app.cats))}catch{}rebuildCats();fillSelects();renderHome();if($('library').classList.contains('active'))renderLibrary()}return changed}
+async function syncPush(){if(!sb||!sbUser)return;const {error}=await sb.from('vault').upsert({user_id:sbUser.id,data:{links:app.links,cats:app.cats},updated_at:new Date().toISOString()});if(error)throw error}
+function schedulePush(){if(!sb||!sbUser)return;clearTimeout(_pushT);_pushT=setTimeout(()=>{syncPush().then(()=>setSyncStatus('Salvato sul cloud · '+new Date().toLocaleTimeString('it-IT'))).catch(e=>setSyncStatus('Errore salvataggio: '+(e.message||e)))},1500)}
+async function syncNow(){if(!sb||!sbUser)return;setSyncStatus('Sincronizzo…');try{await syncPull();await syncPush();_lastPull=Date.now();setSyncStatus('Sincronizzato · '+new Date().toLocaleTimeString('it-IT'))}catch(e){console.error(e);setSyncStatus('Errore sync: '+(e.message||e))}}
+function renderSyncUI(){const box=$('syncBox');if(!box)return;const cfg=getSyncCfg();const st=app._syncStatus?`<div class="hint" style="padding:8px 2px 0">${esc(app._syncStatus)}</div>`:'';if(!cfg){box.innerHTML=`<div class="hint" style="padding:0 0 8px">Inserisci una volta i dati del tuo Supabase per attivare la sincronizzazione tra Chromebook e Android.</div><div class="field"><label>Project URL</label><input id="syncUrl" placeholder="https://xxxx.supabase.co" value="https://zgxgmafuahfcyiqnboql.supabase.co" /></div><div class="field" style="margin-top:8px"><label>Chiave anon / public</label><input id="syncKey" placeholder="eyJ… oppure sb_publishable_…" /></div><button class="btn filled full" type="button" data-sync="save-cfg" style="margin-top:10px">Attiva sincronizzazione</button>`+st;return}if(!sbUser){box.innerHTML=`<div class="hint" style="padding:0 0 8px">Accedi con la tua email (usa la <b>stessa</b> su entrambi i dispositivi): ricevi un link, lo apri, e sei dentro.</div><div class="field"><label>Email</label><input id="syncEmail" type="email" placeholder="tu@email.com" /></div><button class="btn filled full" type="button" data-sync="send-link" style="margin-top:10px">📧 Inviami il link di accesso</button><button class="btn ghost full" type="button" data-sync="reset-cfg" style="margin-top:8px">Cambia configurazione</button>`+st;return}box.innerHTML=`<div class="hint" style="padding:0 0 8px">✅ Connesso come <b>${esc(sbUser.email||'')}</b>. Articoli e categorie si sincronizzano da soli.</div><button class="btn filled full" type="button" data-sync="now">🔄 Sincronizza ora</button><button class="btn outline full" type="button" data-sync="logout" style="margin-top:8px">Esci</button>`+st}
+document.addEventListener('click',e=>{const b=e.target.closest('#syncBox [data-sync]');if(!b)return;const a=b.dataset.sync;if(a==='save-cfg')saveSyncConfig($('syncUrl').value,$('syncKey').value);else if(a==='send-link')syncSendLink($('syncEmail').value);else if(a==='now')syncNow();else if(a==='logout')syncLogout();else if(a==='reset-cfg'){localStorage.removeItem(SYNCCFG);sb=null;sbUser=null;app._syncStatus='';renderSyncUI()}});
+window.addEventListener('focus',()=>{if(sb&&sbUser&&Date.now()-_lastPull>20000){_lastPull=Date.now();syncPull().then(c=>{if(c)setSyncStatus('Aggiornato dal cloud · '+new Date().toLocaleTimeString('it-IT'))}).catch(()=>{})}});
+
+loadPrefs();loadCats();loadPdfs();loadDoiCache();load();rebuildCats();fillSelects();renderFlags({});theme();renderHome();renderDois();setP(0,'In attesa di un PDF');observeTitle('home');maybeBackupReminder();initSync();
 if(navigator.storage&&navigator.storage.persist){navigator.storage.persisted?navigator.storage.persisted().then(p=>{if(!p)navigator.storage.persist().catch(()=>{})}).catch(()=>{}):navigator.storage.persist().catch(()=>{})}
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
 </script>
