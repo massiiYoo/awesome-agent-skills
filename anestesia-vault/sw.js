@@ -1,5 +1,5 @@
 /* Anestesia Vault - service worker (offline app shell) */
-const CACHE = 'av-v6';
+const CACHE = 'av-v7';
 const SHELL = [
   './',
   './index.html',
