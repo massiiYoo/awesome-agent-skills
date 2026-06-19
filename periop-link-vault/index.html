@@ -577,8 +577,8 @@ function readerFsToggle(){const el=$('readerSheet');const fs=document.fullscreen
 $('readerFs').addEventListener('click',readerFsToggle);
 
 /* ---------- Sync (Supabase, articles+categories) ---------- */
-const SYNCCFG='periop-sync-cfg';let sb=null,sbUser=null,_pushT=null,_lastPull=0;
-function getSyncCfg(){try{return JSON.parse(localStorage.getItem(SYNCCFG)||'null')}catch{return null}}
+const SYNCCFG='periop-sync-cfg',SYNC_DEFAULT={url:'https://zgxgmafuahfcyiqnboql.supabase.co',key:'sb_publishable_nqrDfyQsfamOnmPUuIG6jg_ly-q_lAn'};let sb=null,sbUser=null,_pushT=null,_lastPull=0;
+function getSyncCfg(){try{const c=JSON.parse(localStorage.getItem(SYNCCFG)||'null');if(c&&c.url&&c.key)return c}catch{}return SYNC_DEFAULT.url&&SYNC_DEFAULT.key?SYNC_DEFAULT:null}
 async function loadSupabase(){if(window._sbLib)return window._sbLib;window._sbLib=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');return window._sbLib}
 function setSyncStatus(s){app._syncStatus=s;renderSyncUI()}
 async function initSync(){const cfg=getSyncCfg();renderSyncUI();if(!cfg||!cfg.url||!cfg.key)return;try{const {createClient}=await loadSupabase();sb=createClient(cfg.url,cfg.key);const {data}=await sb.auth.getSession();sbUser=data&&data.session?data.session.user:null;sb.auth.onAuthStateChange((e,s)=>{sbUser=s?s.user:null;renderSyncUI();if(sbUser)syncNow()});renderSyncUI();if(sbUser)syncNow()}catch(e){console.error('sync init',e);setSyncStatus('Errore avvio sync: '+(e.message||e))}}
