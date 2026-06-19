@@ -246,7 +246,7 @@
       <div class="field"><label for="f_tags">Tag (separati da virgola)</label><input id="f_tags" placeholder="ecoguidato, arto superiore, ropivacaina" /></div>
       <div class="field"><label for="f_notes">Note</label><textarea id="f_notes" placeholder="Indicazioni, dosaggi, differenze rispetto al nostro protocollo…"></textarea></div>
       <div class="field"><label>File allegati</label>
-        <div class="drop" id="drop"><strong>Tocca per scegliere</strong> o trascina qui<div class="hint" style="margin-top:6px">Puoi caricarne <b>più di uno</b> · PDF, foto, Word… restano salvati nel dispositivo</div><input id="f_file" type="file" multiple style="margin-top:14px" /></div>
+        <div class="drop" id="drop"><strong>Tocca per scegliere</strong> o trascina qui<div class="hint" style="margin-top:6px">Puoi caricarne <b>più di uno</b> · PDF, HTML, foto, Word… restano salvati nel dispositivo</div><input id="f_file" type="file" multiple style="margin-top:14px" /></div>
         <div id="fileChip"></div>
       </div>
       <button class="btn filled full" type="button" id="saveBtn2" style="margin-top:4px">Salva documento</button>
@@ -278,7 +278,10 @@ const uid=()=>crypto.randomUUID?crypto.randomUUID():"id-"+Date.now()+"-"+Math.ra
 const esc=s=>(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function fmtSize(b){if(!b)return"";const u=["B","KB","MB","GB"];let i=0;while(b>=1024&&i<u.length-1){b/=1024;i++;}return b.toFixed(b<10&&i>0?1:0)+" "+u[i];}
 function fmtDate(s){if(!s)return"";const d=new Date(s);if(isNaN(d))return s;return d.toLocaleDateString("it-IT",{day:"2-digit",month:"short",year:"numeric"});}
-function fileIcon(t){t=t||"";if(t.includes("pdf"))return"📕";if(t.includes("image"))return"🖼️";if(t.includes("word")||t.includes("document"))return"📘";if(t.includes("sheet")||t.includes("excel"))return"📊";if(t.includes("presentation"))return"📑";return"📄";}
+function fileIcon(t){t=t||"";if(t.includes("pdf"))return"📕";if(t.includes("html"))return"🌐";if(t.includes("image"))return"🖼️";if(t.includes("word")||t.includes("document"))return"📘";if(t.includes("sheet")||t.includes("excel"))return"📊";if(t.includes("presentation"))return"📑";if(t.includes("text"))return"📃";return"📄";}
+const EXT_MIME={html:"text/html",htm:"text/html",pdf:"application/pdf",txt:"text/plain",csv:"text/csv",rtf:"application/rtf",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",gif:"image/gif",webp:"image/webp",svg:"image/svg+xml",doc:"application/msword",docx:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",xls:"application/vnd.ms-excel",xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",ppt:"application/vnd.ms-powerpoint",pptx:"application/vnd.openxmlformats-officedocument.presentationml.presentation"};
+function guessType(name,type){if(type)return type;const ext=(name||"").split('.').pop().toLowerCase();return EXT_MIME[ext]||"";}
+function typedBlob(f){if(!f.blob||f.blob.type)return f.blob;const t=f.type||guessType(f.name,"");return t?f.blob.slice(0,f.blob.size,t):f.blob;}
 function blobToDataURL(b){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(b);});}
 async function dataURLtoBlob(d){return (await fetch(d)).blob();}
 function toast(msg,kind){const t=document.createElement('div');t.className='toast'+(kind?' '+kind:'');t.textContent=msg;$('#toasts').appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300);},2600);}
@@ -409,8 +412,8 @@ function openDetail(id){
   $('#detailBody').innerHTML=html;
   openSheet('detailSheet');
 }
-function openFile(id,i=0){const d=docs.find(x=>x.id===id);if(!d)return;const f=docFiles(d)[i];if(!f||!f.blob)return;const url=URL.createObjectURL(f.blob);window.open(url,"_blank");setTimeout(()=>URL.revokeObjectURL(url),60000);}
-function downloadFile(id,i=0){const d=docs.find(x=>x.id===id);if(!d)return;const f=docFiles(d)[i];if(!f||!f.blob)return;const url=URL.createObjectURL(f.blob);const a=document.createElement('a');a.href=url;a.download=f.name||(d.title+".bin");a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
+function openFile(id,i=0){const d=docs.find(x=>x.id===id);if(!d)return;const f=docFiles(d)[i];if(!f||!f.blob)return;const url=URL.createObjectURL(typedBlob(f));window.open(url,"_blank");setTimeout(()=>URL.revokeObjectURL(url),60000);}
+function downloadFile(id,i=0){const d=docs.find(x=>x.id===id);if(!d)return;const f=docFiles(d)[i];if(!f||!f.blob)return;const url=URL.createObjectURL(typedBlob(f));const a=document.createElement('a');a.href=url;a.download=f.name||(d.title+".bin");a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
 async function removeDoc(id){const d=docs.find(x=>x.id===id);if(!d)return;if(!await confirmDlg("Eliminare?",`"${d.title}" verrà rimosso definitivamente.`,"Elimina",true))return;await dbDel(id);docs=await dbAll();closeSheet('detailSheet');refresh();toast("Documento eliminato");}
 
 /* ---------- form ---------- */
@@ -431,7 +434,7 @@ async function saveForm(){
   const doc={id,title,category:$('#f_category').value||"Altro",hospital:$('#f_hospital').value.trim(),author:$('#f_author').value.trim(),date:$('#f_date').value,tags:$('#f_tags').value.split(",").map(t=>t.trim()).filter(Boolean),notes:$('#f_notes').value.trim(),addedAt:existing?existing.addedAt:Date.now(),updatedAt:Date.now(),files:state.formFiles.map(f=>({name:f.name,type:f.type,size:f.size,blob:f.blob}))};
   await dbPut(doc);docs=await dbAll();closeSheet('formSheet');refresh();toast(existing?"Aggiornato ✓":"Salvato ✓","ok");
 }
-function pickFiles(fileList){const files=[...(fileList||[])];if(!files.length)return;let added=0;for(const file of files){if(file.size>40*1024*1024){toast(`"${file.name}" supera i 40 MB, saltato`,"err");continue;}state.formFiles.push({name:file.name,type:file.type,size:file.size,blob:file});added++;}if(added)renderFileChips();}
+function pickFiles(fileList){const files=[...(fileList||[])];if(!files.length)return;let added=0;for(const file of files){if(file.size>40*1024*1024){toast(`"${file.name}" supera i 40 MB, saltato`,"err");continue;}state.formFiles.push({name:file.name,type:guessType(file.name,file.type),size:file.size,blob:file});added++;}if(added)renderFileChips();}
 
 /* ---------- sheets ---------- */
 function openSheet(id){const s=document.getElementById(id);$('#scrim').classList.add('show');document.body.classList.add('locked');s.classList.add('open');s.setAttribute('aria-hidden','false');}
