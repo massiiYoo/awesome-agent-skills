@@ -210,7 +210,6 @@
           <input id="importAll" type="file" accept="application/json,.json" hidden />
           <div class="hint" style="padding:10px 2px 0">Suggerimento: installa l'app (menu browser → "Aggiungi a schermata Home") per usarla offline e proteggere meglio i dati.</div>
         </div>
-        <div class="card-soft" style="padding:14px;margin-top:6px"><h3 style="margin-bottom:10px">Sincronizzazione tra dispositivi (beta)</h3><div id="syncBox"></div></div>
         <div style="height:1px;background:var(--outline-v);margin:4px 0"></div>
         <p class="hint">Esporta solo l'elenco (senza file), utile per Excel:</p>
         <button class="btn outline full" type="button" id="exportCsvBtn">📄 Esporta elenco (CSV)</button>
@@ -446,7 +445,9 @@ function closeAllSheets(){$$('.sheet.open').forEach(s=>closeSheet(s.id));}
 async function buildBackup(){const out={app:"Anestesia Vault",version:2,exportedAt:new Date().toISOString(),documents:[]};for(const d of docs){const it={...d};delete it.file;delete it.fileName;delete it.fileType;delete it.fileSize;const files=docFiles(d);it.files=[];for(const f of files){it.files.push({name:f.name,type:f.type,size:f.size,data:f.blob?await blobToDataURL(f.blob):null});}out.documents.push(it);}return out;}
 async function exportAll(){if(!docs.length){toast("Niente da esportare","warn");return;}toast("Preparo il backup…");const out=await buildBackup();const blob=new Blob([JSON.stringify(out)],{type:"application/json"});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download="anestesia-vault-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);toast(`Backup esportato (${docs.length}) ✓`,"ok");}
 async function shareAll(){if(!docs.length){toast("Niente da esportare","warn");return;}const out=await buildBackup();const file=new File([JSON.stringify(out)],"anestesia-vault-backup-"+new Date().toISOString().slice(0,10)+".json",{type:"application/json"});if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:"Anestesia Vault backup"});return;}catch(e){if(e&&e.name==='AbortError')return;}}exportAll();}
-async function importAll(file){try{const data=JSON.parse(await file.text());const arr=data.documents||data;if(!Array.isArray(arr))throw new Error("Formato non valido");const merge=await chooseDlg(`Trovati ${arr.length} documenti`,["Unisci con l'archivio attuale","Sostituisci tutto"]);if(!merge)return;if(merge.startsWith("Sostituisci")){if(!await confirmDlg("Sostituire?","L'archivio attuale verrà cancellato.","Sostituisci",true))return;await dbClear();}let n=0;for(const it of arr){const doc={...it};const files=[];
+function maxDocDate(a){return a.reduce((m,x)=>Math.max(m,+x.updatedAt||0),0)}
+function backupWarn(inC,curC,inD,curD){const w=[];if(inC<curC)w.push(`ha MENO documenti (${inC}) di quelli attuali (${curC})`);if(inD&&curD&&inD<curD)w.push('è più VECCHIO dei dati attuali');return w.length?`⚠️ Attenzione: il backup ${w.join(' ed ')}. `:''}
+async function importAll(file){try{const data=JSON.parse(await file.text());const arr=data.documents||data;if(!Array.isArray(arr))throw new Error("Formato non valido");const warn=backupWarn(arr.length,docs.length,maxDocDate(arr),maxDocDate(docs));const merge=await chooseDlg(warn+`Trovati ${arr.length} documenti`,["Unisci con l'archivio attuale","Sostituisci tutto"]);if(!merge)return;if(merge.startsWith("Sostituisci")){if(!await confirmDlg("Sostituire?","L'archivio attuale verrà cancellato.","Sostituisci",true))return;await dbClear();}let n=0;for(const it of arr){const doc={...it};const files=[];
   if(Array.isArray(it.files)){for(const f of it.files){files.push({name:f.name,type:f.type,size:f.size,blob:f.data?await dataURLtoBlob(f.data):(f.blob||null)});}}
   else if(it.fileData){files.push({name:it.fileName,type:it.fileType,size:it.fileSize,blob:await dataURLtoBlob(it.fileData)});}
   delete doc.fileData;delete doc.file;delete doc.fileName;delete doc.fileType;delete doc.fileSize;
@@ -484,22 +485,6 @@ $('#main').addEventListener('scroll',()=>{},{passive:true});
 window.addEventListener('scroll',()=>{$('#appbar').classList.toggle('elevated',window.scrollY>6);},{passive:true});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAllSheets();});
 
-/* ---------- Sync (Supabase, documenti con allegati) ---------- */
-const SYNCCFG='av-sync-cfg',SYNC_DEFAULT={url:'https://zgxgmafuahfcyiqnboql.supabase.co',key:'sb_publishable_nqrDfyQsfamOnmPUuIG6jg_ly-q_lAn'};
-let sb=null,sbUser=null,_pushT=null,_lastPull=0,_syncStatus='';
-function getSyncCfg(){try{const c=JSON.parse(localStorage.getItem(SYNCCFG)||'null');if(c&&c.url&&c.key)return c}catch{}return SYNC_DEFAULT.url&&SYNC_DEFAULT.key?SYNC_DEFAULT:null}
-async function loadSupabase(){if(window._sbLib)return window._sbLib;window._sbLib=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');return window._sbLib}
-function setSyncStatus(s){_syncStatus=s;renderSyncUI()}
-async function initSync(){const cfg=getSyncCfg();renderSyncUI();if(!cfg)return;try{const {createClient}=await loadSupabase();sb=createClient(cfg.url,cfg.key);const {data}=await sb.auth.getSession();sbUser=data&&data.session?data.session.user:null;sb.auth.onAuthStateChange((e,s)=>{sbUser=s?s.user:null;renderSyncUI()});renderSyncUI()}catch(e){console.error('sync init',e);setSyncStatus('Errore avvio sync: '+(e.message||e))}}
-async function syncSendLink(email){email=(email||'').trim();if(!sb)return toast('Sync non pronta','warn');if(!/^[^@]+@[^@]+\.[^@]+$/.test(email))return toast('Email non valida','warn');setSyncStatus('Invio il link…');const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});if(error){setSyncStatus('Errore: '+error.message);return toast('Errore: '+error.message,'err')}setSyncStatus('Link inviato a '+email+'. Aprilo dalla mail su questo dispositivo.');toast('Link inviato via email','ok')}
-async function syncLogout(){try{if(sb)await sb.auth.signOut()}catch{}sbUser=null;setSyncStatus('')}
-async function syncPull(){if(!sb||!sbUser)return false;const {data,error}=await sb.from('anestesia').select('data').eq('user_id',sbUser.id).maybeSingle();if(error)throw error;if(data&&data.data&&Array.isArray(data.data.documents))return await mergeCloudDocs(data.data.documents);return false}
-async function mergeCloudDocs(arr){const byId=new Map(docs.map(d=>[d.id,d]));let n=0;for(const it of arr){const ex=byId.get(it.id);if(ex&&(ex.updatedAt||0)>=(it.updatedAt||0))continue;const doc={...it};const files=[];if(Array.isArray(it.files)){for(const f of it.files){files.push({name:f.name,type:f.type,size:f.size,blob:f.data?await dataURLtoBlob(f.data):(f.blob||null)})}}delete doc.fileData;delete doc.file;delete doc.fileName;delete doc.fileType;delete doc.fileSize;doc.files=files;if(!doc.id)doc.id=uid();if(!doc.addedAt)doc.addedAt=Date.now();await dbPut(doc);n++}if(n){docs=await dbAll();refresh()}return n>0}
-async function syncPush(){if(!sb||!sbUser)return;const out=await buildBackup();const {error}=await sb.from('anestesia').upsert({user_id:sbUser.id,data:{documents:out.documents},updated_at:new Date().toISOString()});if(error)throw error}
-async function syncSave(){if(!sbUser)return;setSyncStatus('Salvo sul cloud…');try{await syncPush();setSyncStatus('✅ Salvato sul cloud · '+new Date().toLocaleTimeString('it-IT'))}catch(e){console.error(e);setSyncStatus('Errore: '+(e.message||e))}}
-async function syncLoad(){if(!sbUser)return;setSyncStatus('Carico dal cloud…');try{const ch=await syncPull();setSyncStatus((ch?'✅ Caricato e unito':'✅ Già allineato')+' · '+new Date().toLocaleTimeString('it-IT'))}catch(e){console.error(e);setSyncStatus('Errore: '+(e.message||e))}}
-function renderSyncUI(){const box=$('#syncBox');if(!box)return;const st=_syncStatus?`<div class="hint" style="padding:8px 2px 0">${esc(_syncStatus)}</div>`:'';if(!sbUser){box.innerHTML=`<div class="hint" style="padding:0 0 8px">Accedi con la tua email (la <b>stessa</b> su entrambi i dispositivi): ricevi un link, lo apri, sei dentro.</div><div class="field"><label>Email</label><input id="syncEmail" type="email" placeholder="tu@email.com" /></div><button class="btn filled full" type="button" data-sync="send-link" style="margin-top:10px">📧 Inviami il link di accesso</button>`+st;return}box.innerHTML=`<div class="hint" style="padding:0 0 8px">✅ Connesso come <b>${esc(sbUser.email||'')}</b>. I documenti (con allegati) si salvano/caricano quando premi tu.</div><button class="btn filled full" type="button" data-sync="save">☁️ Salva tutto sul cloud</button><button class="btn tonal full" type="button" data-sync="load" style="margin-top:8px">⬇️ Carica dal cloud</button><button class="btn outline full" type="button" data-sync="logout" style="margin-top:8px">Esci</button>`+st}
-document.addEventListener('click',e=>{const b=e.target.closest('#syncBox [data-sync]');if(!b)return;const a=b.dataset.sync;if(a==='send-link')syncSendLink($('#syncEmail').value);else if(a==='save')syncSave();else if(a==='load')syncLoad();else if(a==='logout')syncLogout()});
 
 
 /* ---------- boot ---------- */
@@ -507,7 +492,6 @@ document.addEventListener('click',e=>{const b=e.target.closest('#syncBox [data-s
   applyTheme(localStorage.getItem('av-theme')|| (matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'));
   try{docs=await dbAll();}catch(e){toast("Errore archivio locale","err");}
   go('home');
-  initSync();
   if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
 })();
 </script>
