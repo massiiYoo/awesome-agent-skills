@@ -210,6 +210,7 @@
           <input id="importAll" type="file" accept="application/json,.json" hidden />
           <div class="hint" style="padding:10px 2px 0">Suggerimento: installa l'app (menu browser → "Aggiungi a schermata Home") per usarla offline e proteggere meglio i dati.</div>
         </div>
+        <div class="card-soft" style="padding:14px;margin-top:6px"><h3 style="margin-bottom:10px">Sincronizzazione tra dispositivi (beta)</h3><div id="syncBox"></div></div>
         <div style="height:1px;background:var(--outline-v);margin:4px 0"></div>
         <p class="hint">Esporta solo l'elenco (senza file), utile per Excel:</p>
         <button class="btn outline full" type="button" id="exportCsvBtn">📄 Esporta elenco (CSV)</button>
@@ -414,7 +415,7 @@ function openDetail(id){
 }
 function openFile(id,i=0){const d=docs.find(x=>x.id===id);if(!d)return;const f=docFiles(d)[i];if(!f||!f.blob)return;const url=URL.createObjectURL(typedBlob(f));window.open(url,"_blank");setTimeout(()=>URL.revokeObjectURL(url),60000);}
 function downloadFile(id,i=0){const d=docs.find(x=>x.id===id);if(!d)return;const f=docFiles(d)[i];if(!f||!f.blob)return;const url=URL.createObjectURL(typedBlob(f));const a=document.createElement('a');a.href=url;a.download=f.name||(d.title+".bin");a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);}
-async function removeDoc(id){const d=docs.find(x=>x.id===id);if(!d)return;if(!await confirmDlg("Eliminare?",`"${d.title}" verrà rimosso definitivamente.`,"Elimina",true))return;await dbDel(id);docs=await dbAll();closeSheet('detailSheet');refresh();toast("Documento eliminato");}
+async function removeDoc(id){const d=docs.find(x=>x.id===id);if(!d)return;if(!await confirmDlg("Eliminare?",`"${d.title}" verrà rimosso definitivamente.`,"Elimina",true))return;await dbDel(id);docs=await dbAll();closeSheet('detailSheet');refresh();schedulePush();toast("Documento eliminato");}
 
 /* ---------- form ---------- */
 function fillCategorySelect(sel){const counts=catCounts();const cats=allCategories().sort((a,b)=>a.localeCompare(b,'it'));sel.innerHTML=cats.map(c=>`<option>${esc(c)}</option>`).join("");}
@@ -432,7 +433,7 @@ async function saveForm(){
   const title=$('#f_title').value.trim();if(!title){toast("Il titolo è obbligatorio","warn");$('#f_title').focus();return;}
   const id=$('#f_id').value||uid();const existing=docs.find(x=>x.id===id);
   const doc={id,title,category:$('#f_category').value||"Altro",hospital:$('#f_hospital').value.trim(),author:$('#f_author').value.trim(),date:$('#f_date').value,tags:$('#f_tags').value.split(",").map(t=>t.trim()).filter(Boolean),notes:$('#f_notes').value.trim(),addedAt:existing?existing.addedAt:Date.now(),updatedAt:Date.now(),files:state.formFiles.map(f=>({name:f.name,type:f.type,size:f.size,blob:f.blob}))};
-  await dbPut(doc);docs=await dbAll();closeSheet('formSheet');refresh();toast(existing?"Aggiornato ✓":"Salvato ✓","ok");
+  await dbPut(doc);docs=await dbAll();closeSheet('formSheet');refresh();schedulePush();toast(existing?"Aggiornato ✓":"Salvato ✓","ok");
 }
 function pickFiles(fileList){const files=[...(fileList||[])];if(!files.length)return;let added=0;for(const file of files){if(file.size>40*1024*1024){toast(`"${file.name}" supera i 40 MB, saltato`,"err");continue;}state.formFiles.push({name:file.name,type:guessType(file.name,file.type),size:file.size,blob:file});added++;}if(added)renderFileChips();}
 
@@ -450,11 +451,11 @@ async function importAll(file){try{const data=JSON.parse(await file.text());cons
   else if(it.fileData){files.push({name:it.fileName,type:it.fileType,size:it.fileSize,blob:await dataURLtoBlob(it.fileData)});}
   delete doc.fileData;delete doc.file;delete doc.fileName;delete doc.fileType;delete doc.fileSize;
   doc.files=files;if(!doc.id)doc.id=uid();if(!doc.addedAt)doc.addedAt=Date.now();await dbPut(doc);n++;}
-  docs=await dbAll();refresh();toast(`Importati ${n} documenti ✓`,"ok");}catch(e){console.error(e);toast("Errore import: "+e.message,"err");}}
+  docs=await dbAll();refresh();schedulePush();toast(`Importati ${n} documenti ✓`,"ok");}catch(e){console.error(e);toast("Errore import: "+e.message,"err");}}
 function exportCsv(){if(!docs.length){toast("Niente da esportare","warn");return;}const cols=["title","category","hospital","author","date","tags","notes","fileName"];const head=["Titolo","Categoria","Ospedale","Inviato da","Data","Tag","Note","File"];const q=s=>'"'+String(s==null?"":s).replace(/"/g,'""')+'"';const rows=[head.join(",")].concat(docs.map(d=>cols.map(c=>q(c==="tags"?(d.tags||[]).join("; "):d[c])).join(",")));const blob=new Blob(["﻿"+rows.join("\r\n")],{type:"text/csv;charset=utf-8"});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download="anestesia-vault-elenco-"+new Date().toISOString().slice(0,10)+".csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);toast("CSV esportato ✓","ok");}
 async function resetAll(){if(!await confirmDlg("Svuotare tutto?","Esporta prima un backup se vuoi conservarlo. Operazione irreversibile.","Svuota",true))return;await dbClear();docs=[];refresh();toast("Archivio svuotato");}
 const SEED=[{title:"Blocco interscalenico ecoguidato — protocollo",category:"Locoregionale",hospital:"Osp. San Raffaele",author:"Dr. Bianchi",tags:["ecoguidato","arto superiore","ropivacaina"],notes:"Ropivacaina 0,5% 15-20 mL. Paziente semiseduto, sonda in-plane laterale."},{title:"Gestione vie aeree difficili — algoritmo",category:"Vie aeree",hospital:"Policlinico",author:"Dr.ssa Verdi",tags:["DAS","videolaringoscopio"],notes:"Algoritmo DAS 2015 adattato. Checklist pre-induzione allegata."},{title:"Analgesia post-cesareo — schema multimodale",category:"Ostetricia",hospital:"Osp. Sant'Anna",author:"Dr. Neri",tags:["TAP block","paracetamolo","FANS"],notes:"Morfina intratecale 100 mcg + TAP block bilaterale + paracetamolo/ketorolac."}];
-async function seed(){for(const s of SEED){await dbPut({id:uid(),...s,date:"",addedAt:Date.now()-Math.floor(Math.random()*1e7),updatedAt:Date.now(),files:[]});}docs=await dbAll();refresh();toast("Esempi caricati ✓","ok");}
+async function seed(){for(const s of SEED){await dbPut({id:uid(),...s,date:"",addedAt:Date.now()-Math.floor(Math.random()*1e7),updatedAt:Date.now(),files:[]});}docs=await dbAll();refresh();schedulePush();toast("Esempi caricati ✓","ok");}
 
 /* ---------- refresh current screen ---------- */
 function refresh(){renderDashboard();if(state.screen==='library')renderLibrary();if(state.screen==='categories')renderCategories();}
@@ -483,11 +484,30 @@ $('#main').addEventListener('scroll',()=>{},{passive:true});
 window.addEventListener('scroll',()=>{$('#appbar').classList.toggle('elevated',window.scrollY>6);},{passive:true});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAllSheets();});
 
+/* ---------- Sync (Supabase, documenti con allegati) ---------- */
+const SYNCCFG='av-sync-cfg',SYNC_DEFAULT={url:'https://zgxgmafuahfcyiqnboql.supabase.co',key:'sb_publishable_nqrDfyQsfamOnmPUuIG6jg_ly-q_lAn'};
+let sb=null,sbUser=null,_pushT=null,_lastPull=0,_syncStatus='';
+function getSyncCfg(){try{const c=JSON.parse(localStorage.getItem(SYNCCFG)||'null');if(c&&c.url&&c.key)return c}catch{}return SYNC_DEFAULT.url&&SYNC_DEFAULT.key?SYNC_DEFAULT:null}
+async function loadSupabase(){if(window._sbLib)return window._sbLib;window._sbLib=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');return window._sbLib}
+function setSyncStatus(s){_syncStatus=s;renderSyncUI()}
+async function initSync(){const cfg=getSyncCfg();renderSyncUI();if(!cfg)return;try{const {createClient}=await loadSupabase();sb=createClient(cfg.url,cfg.key);const {data}=await sb.auth.getSession();sbUser=data&&data.session?data.session.user:null;sb.auth.onAuthStateChange((e,s)=>{sbUser=s?s.user:null;renderSyncUI();if(sbUser)syncNow()});renderSyncUI();if(sbUser)syncNow()}catch(e){console.error('sync init',e);setSyncStatus('Errore avvio sync: '+(e.message||e))}}
+async function syncSendLink(email){email=(email||'').trim();if(!sb)return toast('Sync non pronta','warn');if(!/^[^@]+@[^@]+\.[^@]+$/.test(email))return toast('Email non valida','warn');setSyncStatus('Invio il link…');const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});if(error){setSyncStatus('Errore: '+error.message);return toast('Errore: '+error.message,'err')}setSyncStatus('Link inviato a '+email+'. Aprilo dalla mail su questo dispositivo.');toast('Link inviato via email','ok')}
+async function syncLogout(){try{if(sb)await sb.auth.signOut()}catch{}sbUser=null;setSyncStatus('')}
+async function syncPull(){if(!sb||!sbUser)return false;const {data,error}=await sb.from('anestesia').select('data').eq('user_id',sbUser.id).maybeSingle();if(error)throw error;if(data&&data.data&&Array.isArray(data.data.documents))return await mergeCloudDocs(data.data.documents);return false}
+async function mergeCloudDocs(arr){const byId=new Map(docs.map(d=>[d.id,d]));let n=0;for(const it of arr){const ex=byId.get(it.id);if(ex&&(ex.updatedAt||0)>=(it.updatedAt||0))continue;const doc={...it};const files=[];if(Array.isArray(it.files)){for(const f of it.files){files.push({name:f.name,type:f.type,size:f.size,blob:f.data?await dataURLtoBlob(f.data):(f.blob||null)})}}delete doc.fileData;delete doc.file;delete doc.fileName;delete doc.fileType;delete doc.fileSize;doc.files=files;if(!doc.id)doc.id=uid();if(!doc.addedAt)doc.addedAt=Date.now();await dbPut(doc);n++}if(n){docs=await dbAll();refresh()}return n>0}
+async function syncPush(){if(!sb||!sbUser)return;const out=await buildBackup();const {error}=await sb.from('anestesia').upsert({user_id:sbUser.id,data:{documents:out.documents},updated_at:new Date().toISOString()});if(error)throw error}
+function schedulePush(){if(!sb||!sbUser)return;clearTimeout(_pushT);_pushT=setTimeout(()=>{syncPush().then(()=>setSyncStatus('Salvato sul cloud · '+new Date().toLocaleTimeString('it-IT'))).catch(e=>setSyncStatus('Errore salvataggio: '+(e.message||e)))},2000)}
+async function syncNow(){if(!sb||!sbUser)return;setSyncStatus('Sincronizzo…');try{await syncPull();await syncPush();_lastPull=Date.now();setSyncStatus('Sincronizzato · '+new Date().toLocaleTimeString('it-IT'))}catch(e){console.error(e);setSyncStatus('Errore sync: '+(e.message||e))}}
+function renderSyncUI(){const box=$('#syncBox');if(!box)return;const st=_syncStatus?`<div class="hint" style="padding:8px 2px 0">${esc(_syncStatus)}</div>`:'';if(!sbUser){box.innerHTML=`<div class="hint" style="padding:0 0 8px">Accedi con la tua email (la <b>stessa</b> su entrambi i dispositivi): ricevi un link, lo apri, sei dentro.</div><div class="field"><label>Email</label><input id="syncEmail" type="email" placeholder="tu@email.com" /></div><button class="btn filled full" type="button" data-sync="send-link" style="margin-top:10px">📧 Inviami il link di accesso</button>`+st;return}box.innerHTML=`<div class="hint" style="padding:0 0 8px">✅ Connesso come <b>${esc(sbUser.email||'')}</b>. I documenti (con allegati) si sincronizzano da soli.</div><button class="btn filled full" type="button" data-sync="now">🔄 Sincronizza ora</button><button class="btn outline full" type="button" data-sync="logout" style="margin-top:8px">Esci</button>`+st}
+document.addEventListener('click',e=>{const b=e.target.closest('#syncBox [data-sync]');if(!b)return;const a=b.dataset.sync;if(a==='send-link')syncSendLink($('#syncEmail').value);else if(a==='now')syncNow();else if(a==='logout')syncLogout()});
+window.addEventListener('focus',()=>{if(sb&&sbUser&&Date.now()-_lastPull>20000){_lastPull=Date.now();syncPull().then(c=>{if(c)setSyncStatus('Aggiornato dal cloud · '+new Date().toLocaleTimeString('it-IT'))}).catch(()=>{})}});
+
 /* ---------- boot ---------- */
 (async function(){
   applyTheme(localStorage.getItem('av-theme')|| (matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'));
   try{docs=await dbAll();}catch(e){toast("Errore archivio locale","err");}
   go('home');
+  initSync();
   if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
 })();
 </script>
